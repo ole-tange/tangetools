@@ -1,0 +1,155 @@
+#!/usr/bin/perl -w
+
+init_whitelist();
+renice_all(60);
+
+sub init_whitelist {
+    my @whitelist_commands;
+    my @whitelist_users = ("root", "syslog", "ntp", "bind", "snmp", "postfix");
+    if(-f "/etc/reniced/whitelist.users") {
+	@whitelist_users = `cat /etc/reniced/whitelist.users`;
+	chomp(@whitelist_users);
+    }
+    for (@whitelist_users) {
+	$Global::whitelist_users{$_} = 1;
+    }
+
+    if(-f "/etc/reniced/whitelist.commands") {
+	@whitelist_commands = `cat /etc/reniced/whitelist.commands`;
+	chomp(@whitelist_commands);
+    }
+    for (@whitelist_commands) {
+	$Global::whitelist_commands{$_} = 1;
+    }
+}
+
+sub renice_all {
+    my $cpu_seconds = shift;
+    my $ps = ps();
+    my @pids_to_renice = grep_ps($cpu_seconds,$ps);
+    my $user_pid_list = user_pid_list($ps,@pids_to_renice);
+    for my $user (keys %$user_pid_list) {
+	if($user =~ /^\d+$/) {
+	    # All digits username => probably a >8 char username => lookup uid
+	    my ($login,$pass,$uid,$gid) = getpwnam($user);
+	    $user = $login;
+	}
+	renice_user($cpu_seconds, $user, $ps, @{$user_pid_list->{$user}});
+    }
+}
+
+sub renice_user {
+    my ($cpu_seconds, $user, $ps, @pid) = (@_);
+    my @command;
+    for my $pid (@pid) {
+	# Convert pid to human readable:
+	#   my_command (1192)
+	push @command, $ps->{$pid}{'cmd'}."(".$pid.")";
+    }
+    mail($cpu_seconds, $user, @command);
+    renice(@pid);
+}
+
+sub mail {
+    my($cpu_seconds, $user, @command) = @_;
+    my @mail =
+	(
+	 'From: Ole Tanges renice program <tange@binf.ku.dk>',
+	 "To: <$user>",
+	 'Subject: Your program has been reniced',
+	 '',
+	 "Hi $user.",
+	 '',
+	 'Your program:',
+	 '',
+	 "    @command",
+	 '',
+	 "has been using more than $cpu_seconds CPU seconds. I have therefore niced it to nice level 19.",
+	 '',
+	 'If you want to avoid that in the future, you can start the program with a different nice level:',
+	 '',
+	 '    nice -n XX your_command',
+	 '',
+	 'where XX is:',
+	 '  1 - urgent',
+	 '  10 - normal',
+	 '  15 - low',
+	 '  18 - only use spare capacity',
+	 '',
+	 'Regards',
+	 '',
+	 "Ole Tange's renice program",
+	);
+
+    open(S,"|/usr/sbin/sendmail -t") or die;
+    print S map { $_,"\n" } @mail;
+    close S;
+    open(LOG,">>/tmp/reniced") || die;
+    print LOG  map { $_,"\n" } @mail;
+    close LOG;
+}
+
+sub user_pid_list {
+    # given $ps and @pid return {user => @pids}
+    my ($ps,@pid) = @_;
+    my $user;
+    for my $pid (@pid) {
+	push @{$user->{$ps->{$pid}{'user'}}}, $pid;
+    }
+    return $user;
+}
+
+sub renice {
+    my @pid = @_;
+    `renice -n 19 -p @pid 2>&1`;
+    return $?;
+}
+
+sub ps {
+    # return: {pid}->{'nice' => nicelevel, 'user' => username, 'cmd' => command, 'cputime' => cpu_seconds_used}
+    my @out = `ps -eo '%p %u %n %x %c'`;
+    my $ps;
+    shift @out; # Remove header
+    for (@out) {
+	if(/^\s*(\d+)\s+(\S+)\s+(\S+)\s+(\S+)\s+(\S+.*)$/) {
+	    # pid user nice cputime command
+	    my($pid, $user, $nice, $cputime, $cmd) = ($1, $2, $3, $4, $5);
+	    $ps->{$pid}{'user'} = $user;
+	    $ps->{$pid}{'cmd'} = $cmd;
+	    $ps->{$pid}{'nice'} = ($nice eq "-") ? 0 : $nice;
+	    if($cputime=~/((\d+)-)?(\d\d):(\d\d):(\d\d)/) {
+		my $days = $2 ? $2 : 0;
+		$ps->{$pid}{'cputime'} = $days*24*60*60+$3*60*60+$4*60+$5;
+	    } else {
+		warn("cputime not matched: $cputime");
+	    }
+	} else {
+	    warn("ps line not matched: $_");
+	}
+    }
+    return $ps;
+}
+
+sub grep_ps {
+    my ($maxcputime,$ps) = (@_);
+    my @result;
+
+    for my $pid (keys %$ps) {
+	if($Global::whitelist_users{$ps->{$pid}{'user'}}) {
+	    # User is on the whitelist
+	    next;
+	}
+	if($Global::whitelist_commands{$ps->{$pid}{'cmd'}}) {
+	    # Command is on the whitelist
+	    next;
+	}
+	if($ps->{$pid}{'nice'} >= 1) {
+	    # Command is already niced
+	    next;
+	}
+	if($ps->{$pid}{'cputime'} > $maxcputime) {
+	    push @result, $pid;
+	}
+    }
+    return @result;
+}
