@@ -28,13 +28,15 @@ sub renice_all {
     my $ps = ps();
     my @pids_to_renice = grep_ps($cpu_seconds,$ps);
     my $user_pid_list = user_pid_list($ps,@pids_to_renice);
+    my ($login,$pass,$uid,$gid);
     for my $user (keys %$user_pid_list) {
-	if($user =~ /^\d+$/) {
-	    # All digits username => probably a >8 char username => lookup uid
-	    my ($login,$pass,$uid,$gid) = getpwnam($user);
-	    $user = $login;
+        if($user =~ /^\d+$/) {
+            # All digits username => probably a >8 char username => lookup uid
+	    ($login,$pass,$uid,$gid) = getpwuid($user);
+	} else {
+	    $login = $user;
 	}
-	renice_user($cpu_seconds, $user, $ps, @{$user_pid_list->{$user}});
+	renice_user($cpu_seconds, $login, $ps, @{$user_pid_list->{$user}});
     }
 }
 
