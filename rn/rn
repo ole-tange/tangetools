@@ -1,0 +1,4 @@
+#!/bin/bash
+
+mkdir ~/.rm 2>/dev/null
+mv "$@" ~/.rm
