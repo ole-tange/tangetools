@@ -1,0 +1,7 @@
+#!/bin/bash
+
+while /bin/true
+do
+  eval "$@"
+  sleep 1
+done

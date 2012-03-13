@@ -1,0 +1,28 @@
+#!/bin/bash
+
+# TEMP=`getopt -o ena  --long exists,nonexists,all -- "$@"`
+
+if [ $? != 0 ] ; then echo "Terminating..." >&2 ; exit 1 ; fi
+
+# Note the quotes around `$TEMP': they are essential!
+# eval set -- "$TEMP"
+
+export _EXISTS=0
+export _NONEXISTS=0
+
+while true ; do
+        case "$1" in
+                -e|--exists) export _EXISTS=1; shift ;;
+                -n|--nonexists) export _NONEXISTS=1; shift ;;
+                -a|--all) export _EXISTS=1; export _NONEXISTS=1; shift ;;
+                *) break;
+        esac
+done
+
+if [ "$_EXISTS" == "0" -a "$_NONEXISTS" == "0" ] ; then
+  export _EXISTS=1
+  export _NONEXISTS=1
+fi
+
+strace -ff -e trace=file "$@" 2>&1 | perl -ne 's/^[^"]+"(([^\\"]|\\[\\"nt])*)".*/$1/ && do { '$_EXISTS' and -e $1 and print; '$_NONEXISTS' and ! -e $1 and print };'
+
