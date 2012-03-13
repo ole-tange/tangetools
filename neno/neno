@@ -1,0 +1,22 @@
+#!/bin/bash
+
+# Usage:
+#   neno command1 \; command2
+# 
+# neno (no error no output) runs a composed command.
+# If the command returns true output will be ignored
+# Else: the output will be printed on stdout and stderr
+#
+# EXAMPLE: neno command1 \; command2    
+#     If command2 returns true the output from both commands will be ignored
+#     Else: the output will be printed on stdout and stderr
+
+TMP=$(mktemp -d /tmp/no-error.XXXXX)
+if eval $* 2>$TMP/stderr >$TMP/stdout ; then
+  # skip
+  true
+else
+  cat $TMP/stderr >&2
+  cat $TMP/stdout
+fi
+rm -rf $TMP
