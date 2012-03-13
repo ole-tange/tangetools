@@ -1,3 +1,18 @@
 Tools developed by Ole Tange <ole@tange.dk>.
 
 Probably not useful for you, but then again you never now.
+
+em - Force emacs to run in terminal. Use xemacs if installed.
+
+forever - Run the same command or list of commands every second.
+
+neno - No error no output. Only print STDERR and STDOUT if the command fails.
+
+reniced - Renice all commands running more than 1 CPU minute unless they are niced or whitelisted.
+
+rn - Move file(s)/dir(s) to ~/.rm/ (wastebasket).
+
+stdout - Redirect both STDERR and STDOUT to STDOUT.
+
+tracefile - List files being accessed by program.
+
