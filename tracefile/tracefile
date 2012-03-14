@@ -1,12 +1,5 @@
 #!/bin/bash
 
-# TEMP=`getopt -o ena  --long exists,nonexists,all -- "$@"`
-
-if [ $? != 0 ] ; then echo "Terminating..." >&2 ; exit 1 ; fi
-
-# Note the quotes around `$TEMP': they are essential!
-# eval set -- "$TEMP"
-
 export _EXISTS=0
 export _NONEXISTS=0
 
