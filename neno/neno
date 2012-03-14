@@ -1,22 +1,61 @@
 #!/bin/bash
 
-# Usage:
-#   neno command1 \; command2
+# NAME
+#        neno - no error no output
 # 
-# neno (no error no output) runs a composed command.
-# If the command returns true output will be ignored
-# Else: the output will be printed on stdout and stderr
-#
-# EXAMPLE: neno command1 \; command2    
-#     If command2 returns true the output from both commands will be ignored
-#     Else: the output will be printed on stdout and stderr
+# SYNOPSIS
+#        neno command1 [\; command2 ...]
+# 
+# DESCRIPTION
+#        neno will print the output from both standard output and
+#        standard error if the composed command returns an error. If the
+#        composed command returns true, the output will be ignored.
+# 
+#        This is useful for cron jobs where you only want output if it
+#        failed.
+# 
+# AUTHOR
+#        Ole Tange <tange@gnu.org>
+# 
+# COPYRIGHT
+#        Copyright © 2012 Free Software Foundation, Inc.  License
+#        GPLv3+: GNU GPL version 3 or later
+#        <http://gnu.org/licenses/gpl.html>.  This is free software: you
+#        are free to change and redistribute it.  There is NO WARRANTY,
+#        to the extent permitted by law.
+
+print() {
+  cat $TMP/stderr >&4
+  cat $TMP/stdout >&3
+}
+
+cleanup() {
+  rm -rf $TMP
+  return $?
+}
+ 
+control_c() {
+  # Run if user hits control-C
+  # >&4 is the non-redirected stderr
+  echo >&4
+  print
+  echo -en "\n$0: CTRL-C hit: Exiting.\n" >&4
+  cleanup
+  exit $?
+}
+ 
+# trap keyboard interrupt (control-c)
+trap control_c SIGINT
 
 TMP=$(mktemp -d /tmp/no-error.XXXXX)
-if eval $* 2>$TMP/stderr >$TMP/stdout ; then
+exec 3>&1 4>&2
+eval $* 2>$TMP/stderr >$TMP/stdout
+ERROR=$?
+if [ $ERROR == 0 ] ; then
   # skip
   true
 else
-  cat $TMP/stderr >&2
-  cat $TMP/stdout
+  print
 fi
-rm -rf $TMP
+cleanup
+exit $ERROR
