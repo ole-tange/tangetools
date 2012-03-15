@@ -1,5 +1,32 @@
 #!/bin/bash
 
+# NAME
+#        tracefile - list files being accessed
+#
+# SYNOPSIS
+#        tracefile [-ane] command
+#
+# DESCRIPTION
+#        tracefile will print the files being accessed by the command.
+#
+# OPTIONS
+#        -a   List all files.
+#
+#        -e   List only existing files.
+#
+#        -n   List only non-existing files.
+#
+# AUTHOR
+#        Ole Tange <tange@gnu.org>
+#
+# COPYRIGHT
+#        Copyright © 2012 Free Software Foundation, Inc.  License
+#        GPLv3+: GNU GPL version 3 or later
+#        <http://gnu.org/licenses/gpl.html>.  This is free software: you
+#        are free to change and redistribute it.  There is NO WARRANTY,
+#        to the extent permitted by law.
+
+
 export _EXISTS=0
 export _NONEXISTS=0
 
