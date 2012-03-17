@@ -4,7 +4,7 @@
 #        tracefile - list files being accessed
 #
 # SYNOPSIS
-#        tracefile [-ane] command
+#        tracefile [-aenu] command
 #
 # DESCRIPTION
 #        tracefile will print the files being accessed by the command.
@@ -15,6 +15,8 @@
 #        -e   List only existing files.
 #
 #        -n   List only non-existing files.
+#
+#        -u   List only files once.
 #
 # AUTHOR
 #        Ole Tange <tange@gnu.org>
@@ -29,12 +31,14 @@
 
 export _EXISTS=0
 export _NONEXISTS=0
+export _UNIQUE=0
 
 while true ; do
         case "$1" in
                 -e|--exists) export _EXISTS=1; shift ;;
                 -n|--nonexists) export _NONEXISTS=1; shift ;;
                 -a|--all) export _EXISTS=1; export _NONEXISTS=1; shift ;;
+                -u|--unique) export _UNIQUE=1; shift ;;
                 *) break;
         esac
 done
@@ -44,5 +48,6 @@ if [ "$_EXISTS" == "0" -a "$_NONEXISTS" == "0" ] ; then
   export _NONEXISTS=1
 fi
 
-strace -ff -e trace=file "$@" 2>&1 | perl -ne 's/^[^"]+"(([^\\"]|\\[\\"nt])*)".*/$1/ && do { '$_EXISTS' and -e $1 and print; '$_NONEXISTS' and ! -e $1 and print };'
+strace -ff -e trace=file "$@" 2>&1 |
+  perl -ne 's/^[^"]+"(([^\\"]|\\[\\"nt])*)".*/$1/ && do { '$_EXISTS' and -e $1 and (not '$_UNIQUE' or not $seen{$_}++) and print; '$_NONEXISTS' and ! -e $1 and (not '$_UNIQUE' or not $seen{$_}++) and print };'
 
