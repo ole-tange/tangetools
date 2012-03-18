@@ -1,0 +1,36 @@
+#!/usr/bin/perl -an
+
+# field 1
+# field 3,1
+# field 6,2-3
+# field 6-
+# field 2,6-,2-3
+
+BEGIN {
+    @ranges = split(/,/, shift);
+    for (@ranges) {
+	/^(\d+)$/ and push (@fields,($1-1));
+	/^(\d+)-(\d+)$/ and push (@fields,($1-1) .. ($2-1));
+	/^(\d+)-$/ and do {
+	    push (@fields,($1-1)." .. \$#F");
+	    $must_eval = 1;
+	};
+    }
+    # Default: field 1
+    if(not @fields) { @fields=(1-1); }
+    # Perl counts from 0 - not from 1
+    $fields = join(",", @fields);
+}
+if($must_eval) {
+    if(not $Calc::f{$#F}) {
+	# Eval is expensive, so only do it if we have not done before
+	# If an argument ends in '-' then we must figure out the last field
+	# which depends on the number of fields in the line
+	$Calc::f{$#F}++;
+	@{$Calc::fields->{$#F}} = eval $fields;
+    }
+    print join(" ",@F[@{$Calc::fields->{$#F}}]),"\n";
+} else {
+    print join(" ",@F[@fields]),"\n";
+}
+
