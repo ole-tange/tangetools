@@ -1,0 +1,59 @@
+#!/bin/bash
+
+HOST=$1
+PORT=$2
+
+usage () {
+  echo "Usage:"
+  echo "  $0 host [port]"
+  echo "  port defaults to 22 (ssh)"
+  exit 1
+}
+
+print_not_reachable () {
+  if [ "$NOT_REACHABLE" = "1" ] ; then
+    echo -n .
+  else
+    echo -n $HOST:$PORT is not reachable
+    NOT_REACHABLE=1
+  fi
+}
+
+print_up_but_port_closed () {
+  if [ "$PORT_CLOSED" = "1" ] ; then
+    echo -n .
+  else
+    echo -n $HOST is up but port $PORT is closed
+    PORT_CLOSED=1
+  fi
+}
+
+
+port_is_open () {
+    # If tcptraceroute stops working use:
+    # echo | nc -w 2 $HOST $PORT || failed
+    OUT=$(tcptraceroute -f 255 -m 255 -q 1 -w 1 $HOST $PORT 2>&1)
+    if echo "$OUT" | grep 'Destination not reached' >/dev/null ; then
+	print_not_reachable
+	OPEN=no
+    elif echo "$OUT" | grep '\[closed\]' >/dev/null ; then
+	print_up_but_port_closed
+	sleep 1
+	OPEN=no
+    else
+	OPEN=yes
+    fi
+}
+
+if [ -z "$HOST" ] ; then
+  usage
+fi
+if [ -z "$PORT" ] ; then
+  PORT=22
+fi
+
+port_is_open
+while [ "$OPEN" = "no" ] ; do
+  port_is_open
+done
+echo
