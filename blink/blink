@@ -1,0 +1,197 @@
+#!/usr/bin/perl
+
+=head1 NAME
+
+blink - blink disks in a disk enclosure
+
+
+=head1 SYNOPSIS
+
+B<blink> [--on|--off|--toggle] [I<device>|--all|--all-detected|--all-slots]
+
+B<blink> I<action> I<what>
+
+
+=head1 DESCRIPTION
+
+B<blink> blinks a device in an external harddisk enclosure. If some
+devices are already blinking, B<blink> will turn off blinking of all
+devices.
+
+If no I<action> is given the blinking be will toggled.
+
+If no I<device> is given all detected disks in external enclosures will
+be used.
+
+
+=head1 OPTIONS
+
+=over 9
+
+=item I<action>
+
+What action to do. One of B<-n>, B<--on>, B<-f>, B<--off>, B<-t>,
+B<--toggle>. Default is B<--toggle>.
+
+
+=item I<what>
+
+What slots to perform the action on.  One of B<-d>, B<--all>,
+B<--all-detected>, B<-s>, B<--all-slots>, I<device>. Default is
+B<--all-detected>.
+
+
+=item I<device>
+
+The disk device to blink. Either as I<sdX> or as I</dev/sdX>.
+
+
+=item B<--all-detected>
+
+=item B<--all>
+
+=item B<-d>
+
+Select all the detected devices.
+
+
+=item B<--all-slots>
+
+=item B<-s>
+
+Select all slots in the enclosures.
+
+
+=item B<--on>
+
+=item B<-n>
+
+Turn the blink on.
+
+
+=item B<--off>
+
+=item B<-f>
+
+Turn the blink off.
+
+
+=item B<--toggle>
+
+=item B<-t>
+
+Toggle the blink.
+
+
+=back
+
+=head1 EXAMPLE: Blink harddisk /dev/sdf
+
+To blink /dev/sdf
+
+B<blink /dev/sdf>
+
+
+=head1 EXIT STATUS
+
+Always returns true.
+
+
+=head1 REPORTING BUGS
+
+Contact Ole Tange <ole@tange.dk>.
+
+
+=head1 AUTHOR
+
+Copyright (C) 2012 Ole Tange <ole@tange.dk>.
+
+
+=head1 LICENSE
+
+Copyright (C) 2012 Free Software Foundation, Inc.
+
+This program is free software; you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation; either version 3 of the License, or
+at your option any later version.
+
+This program is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with this program.  If not, see <http://www.gnu.org/licenses/>.
+
+
+=head1 DEPENDENCIES
+
+B<blink> uses Perl and GNU Parallel.
+
+
+=head1 SEE ALSO
+
+B<sg3_utils>(1), B<parallel>(1).
+
+=cut
+
+use Getopt::Long;
+
+GetOptions(
+    "n|on" => \$::opt_on,
+    "f|off" => \$::opt_off,
+    "t|toggle" => \$::opt_toggle,
+    "d|all|all-detected|alldetected" => \$::opt_alldetected,
+    "s|all-slots|allslots" => \$::opt_allslots,
+    );
+
+if(@ARGV) {
+    for(@ARGV) {
+      s:/dev/::g;
+    }
+}
+
+if($::opt_alldetected) {
+    $locate = "/sys/class/enclosure/*/*/device/block/sd*/../../enclosure*/locate";
+} elsif($::opt_allslots) {
+    $locate = "/sys/class/enclosure/*/*/device/enclosure*/locate";
+} else {
+    if($#ARGV == 0) {
+	$dev = shift;
+    } else {
+	local($"=",");
+	$dev = @ARGV ? "{@ARGV}" : "*";
+    }
+    $locate = "/sys/class/enclosure/*/*/device/block/$dev/../../enclosure*/locate";
+}
+
+if($::opt_on) {
+    on($locate);
+} elsif($::opt_off) {
+    off($locate);
+} else {
+    toggle($locate);
+}
+
+
+sub on {
+    my $locate = shift;
+    print("parallel echo 1 \\> ::: $locate\n");
+    system("parallel echo 1 \\> ::: $locate\n");
+}
+
+
+sub off {
+    my $locate = shift;
+    print("parallel echo 0 \\> ::: $locate\n");
+    system("parallel echo 0 \\> ::: $locate\n");
+}
+
+
+sub toggle {
+    my $locate = shift;
+    # If the file 'locate' contains 1 it should be put to 0.
+    print('parallel grep -q 1 {} \; echo \$? \\> {} :::'." $locate\n");
+    system('parallel grep -q 1 {} \; echo \$? \\> {} :::'." $locate\n");
+}

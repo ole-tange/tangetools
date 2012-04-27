@@ -1,3 +1,5 @@
 #!/bin/bash
 
-exec emacs -nw "$@"
+EMACS=`which emacs || which xemacs`
+
+exec $EMACS -nw "$@"
