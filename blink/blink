@@ -96,6 +96,9 @@ To blink all undetected slots we first blink all detected and then toggle all sl
 
 B<blink; blink -s>
 
+It will be safe to remove disk from all the blinking slots as the
+slots are either empty or not detected.
+
 
 =head1 EXIT STATUS
 
