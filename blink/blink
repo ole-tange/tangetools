@@ -7,16 +7,14 @@ blink - blink disks in a disk enclosure
 
 =head1 SYNOPSIS
 
-B<blink> [--on|--off|--toggle] [I<device>|--all|--all-detected|--all-slots]
+B<blink> [-n|--on|-f|--off|-t|--toggle] [I<device>|--all|-d|--all-detected|-s|--all-slots]
 
 B<blink> I<action> I<what>
 
 
 =head1 DESCRIPTION
 
-B<blink> blinks a device in an external harddisk enclosure. If some
-devices are already blinking, B<blink> will turn off blinking of all
-devices.
+B<blink> blinks a device in an external harddisk enclosure.
 
 If no I<action> is given the blinking be will toggled.
 
@@ -92,6 +90,13 @@ To blink /dev/sdf
 B<blink /dev/sdf>
 
 
+=head1 EXAMPLE: Blink all undetected slots
+
+To blink all undetected slots we first blink all detected and then toggle all slots:
+
+B<blink; blink -s>
+
+
 =head1 EXIT STATUS
 
 Always returns true.
@@ -153,9 +158,9 @@ if(@ARGV) {
 }
 
 if($::opt_alldetected) {
-    $locate = "/sys/class/enclosure/*/*/device/block/sd*/../../enclosure*/locate";
-} elsif($::opt_allslots) {
     $locate = "/sys/class/enclosure/*/*/device/enclosure*/locate";
+} elsif($::opt_allslots) {
+    $locate = "/sys/class/enclosure/*/*/locate";
 } else {
     if($#ARGV == 0) {
 	$dev = shift;
