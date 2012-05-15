@@ -24,7 +24,7 @@ start() {
     mem_total=$((mem_total_kb * 1024))
 
     # load dependency modules
-    modprobe zram zram_num_devices=$num_cpus
+    modprobe zram zram_num_devices=$num_cpus || modprobe zram num_devices=$num_cpus || exit 1
 
     # initialize the devices
     for i in $(seq 0 $decr_num_cpus); do
