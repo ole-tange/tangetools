@@ -1,0 +1,21 @@
+#!/usr/bin/perl
+
+# Try to flip input upside down with UNICODE
+
+my $down = ' @{}'.
+    q{ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz.,';0123456789?!"&()[]/\_‾};
+my @up = (" ",qw(@ } {),
+    qw{∀ q Ɔ p Ǝ Ⅎ ⅁ H I ſ ʞ ⅂ W N O Ԁ Ό ᴚ S ⊥ ∩ Ʌ M X ⅄ Z ɐ q ɔ p ǝ ɟ 6 ɥ ı ſ ʞ l},
+       qw{ɯ u o d b ɹ s ʇ n ʌ ʍ x ʎ z ˙ ' , ؛ 0 Ɩ 2 Ɛ ᔭ 5 9 Ɫ 8 6 ¿ ¡ „ ⅋ ) ( ] [ / \ ‾ _});
+
+my %up;
+@up{split//,$down}=@up;
+
+if(@ARGV) {
+    print @up{split//,reverse("@ARGV")},"\n";
+} else {
+    while(<>) {
+	print @up{split//,reverse($_)},"\n";
+    }
+}
+
