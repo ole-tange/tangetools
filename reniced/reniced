@@ -56,7 +56,7 @@ sub mail {
     my($cpu_seconds, $user, @command) = @_;
     my @mail =
 	(
-	 'From: Ole Tanges renice program <tange@binf.ku.dk>',
+	 'From: The renice program <root>',
 	 "To: <$user>",
 	 'Subject: Your program has been reniced',
 	 '',
@@ -68,7 +68,10 @@ sub mail {
 	 '',
 	 "has been using more than $cpu_seconds CPU seconds. I have therefore niced it to nice level 19.",
 	 '',
-	 'If you want to avoid that in the future, you can start the program with a different nice level:',
+	 'There is no harm done, this is purely for your information so you know what happened and how',
+	 'to avoid it.',
+	 '',
+	 'If you want to avoid it in the future, you can start the program with a different nice level:',
 	 '',
 	 '    nice -n XX your_command',
 	 '',
@@ -80,7 +83,7 @@ sub mail {
 	 '',
 	 'Regards',
 	 '',
-	 "Ole Tange's renice program",
+	 "The renice program",
 	);
 
     open(S,"|/usr/sbin/sendmail -t") or die;
