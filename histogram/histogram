@@ -1,0 +1,79 @@
+#!/usr/bin/perl -w
+
+# histogram 1 2 3
+# histogram a:1 b:2 c:3
+# histogram "a a":1 b:2 c:3
+# histogram "a a" 1 b 2 c 3
+# (echo a a 1; echo b 2; echo c 3) | histogram
+#
+
+my $raw;
+if($#ARGV != -1) {
+    @raw = @ARGV;
+} else {
+    @raw = (<>);
+    chomp @raw;
+}
+
+my @header=();
+my $has_header = 0;
+for(@raw) {
+    if(s/\s*(\d+(\.\d)?([eE][-+]?\d+)?)\s*$//) {
+	push(@values, eval $1);
+    }
+    if(/\S/) {
+	push(@header, $_);
+    }
+}
+if($numbers_as_headers) {
+    @header = @values;
+}
+
+my $max = max(@values);
+my @header_len = map { length $_ } @header;
+my $max_header_len = max(@header_len) || 0;
+my $width = terminal_width()-$max_header_len-2;
+my $factor = $width/$max;
+
+for(my $i = 0; $i <= $#values; $i++) {
+    if($pre) {
+	bar(sprintf("%".$max_header_len."s",$header[$i]),$values[$i]*$factor);
+    } else {
+	bar("",$values[$i]*$factor,$header[$i]);
+    }
+}
+
+sub max {
+    # Returns:
+    #   Maximum value of array
+    my $max;
+    for (@_) {
+        # Skip undefs
+        defined $_ or next;
+        defined $max or do { $max = $_; next; }; # Set $_ to the first non-undef
+        $max = ($max > $_) ? $max : $_;
+    }
+    return $max;
+}
+
+sub terminal_width {
+    if(not $Private::columns) {
+        $Private::columns = $ENV{'COLUMNS'};
+        if(not $Private::columns) {
+            my $resize = qx{ resize 2>/dev/null };
+            $resize =~ /COLUMNS=(\d+);/ and do { $Private::columns = $1; };
+        }
+        $Private::columns ||= 80;
+    }
+    return $Private::columns;
+}
+
+sub bar {
+    my ($pre,$l,$post) = @_;
+    my @eight = qw(█ ▉ ▊ ▋ ▌ ▍ ▎ ▏);
+    $pre &&= $pre." ";
+    $post &&= " ".$post;
+    $pre ||="";
+    $post ||="";
+    print $pre,$eight[0] x $l, $eight[7-($l*8)%8],$post,"\n";
+}
