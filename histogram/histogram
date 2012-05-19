@@ -1,45 +1,307 @@
 #!/usr/bin/perl -w
 
+=head1 NAME
+
+histogram - make a histogram on the command line
+
+=head1 SYNOPSIS
+
+B<histogram> [--delimiter <delim>|-d <delim>] [--pre|--post] [--log|-l] [--values-as-headers|-t] <list of numbers>
+
+B<cat> <file with numbers> | B<histogram> [options]
+
+=head1 DESCRIPTION
+
+B<histogram> creates a bar chart in your terminal of data. The width
+of the histogram is scaled to fit your terminal and uses a resolution
+of 1/8th of a character.
+
+The list of numbers can be formatted as:
+
+=over 2
+
+=item *
+
+Line with CSV: B<histogram> -d , 1,1.02,3.1
+
+=item *
+
+Line with white space separated values: B<histogram> 1 1.02 3.1
+
+=item *
+
+Line with white space separated headers+values: B<histogram> a 1 b 1.02 c 3.1
+
+=item *
+
+One value per line: (echo 1; echo 1.02; echo 3.1) | B<histogram>
+
+=item *
+
+One white space separated header+value per line: (echo a 1; echo b 1.02; echo c 3.1) | B<histogram>
+
+=item *
+
+One comma separated header+value per line: (echo a,1; echo b,1.02; echo c,3.1) | B<histogram> -d ,
+
+=back
+
+
+=head1 OPTIONS
+
+=over 9
+
+=item B<--delimiter> I<delim>
+
+=item B<-d> I<delim>
+
+Use I<delim> as delimiter between elements.
+
+
+=item B<--log>
+
+=item B<-l>
+
+Take the logarithm of all values.
+
+
+=item B<--pre>
+
+Put the header before the bar.
+
+See also: B<--post>
+
+
+=item B<--post>
+
+Put the header after the bar.
+
+See also: B<--pre>
+
+
+=item B<--values-as-headers>
+
+=item B<-t>
+
+Use the numbers as headers.
+
+
+=back
+
+
+=head1 BUGS
+
+None known.
+
+
+=head1 REPORTING BUGS
+
+Report bugs to <bug-parallel@gnu.org>.
+
+
+=head1 AUTHOR
+
+Copyright (C) 2012 Ole Tange, http://ole.tange.dk and Free
+Software Foundation, Inc.
+
+
+=head1 LICENSE
+
+Copyright (C) 2012 Free Software Foundation, Inc.
+
+This program is free software; you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation; either version 3 of the License, or
+at your option any later version.
+
+This program is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with this program.  If not, see <http://www.gnu.org/licenses/>.
+
+=head2 Documentation license I
+
+Permission is granted to copy, distribute and/or modify this documentation
+under the terms of the GNU Free Documentation License, Version 1.3 or
+any later version published by the Free Software Foundation; with no
+Invariant Sections, with no Front-Cover Texts, and with no Back-Cover
+Texts.  A copy of the license is included in the file fdl.txt.
+
+=head2 Documentation license II
+
+You are free:
+
+=over 9
+
+=item B<to Share>
+
+to copy, distribute and transmit the work
+
+=item B<to Remix>
+
+to adapt the work
+
+=back
+
+Under the following conditions:
+
+=over 9
+
+=item B<Attribution>
+
+You must attribute the work in the manner specified by the author or
+licensor (but not in any way that suggests that they endorse you or
+your use of the work).
+
+=item B<Share Alike>
+
+If you alter, transform, or build upon this work, you may distribute
+the resulting work only under the same, similar or a compatible
+license.
+
+=back
+
+With the understanding that:
+
+=over 9
+
+=item B<Waiver>
+
+Any of the above conditions can be waived if you get permission from
+the copyright holder.
+
+=item B<Public Domain>
+
+Where the work or any of its elements is in the public domain under
+applicable law, that status is in no way affected by the license.
+
+=item B<Other Rights>
+
+In no way are any of the following rights affected by the license:
+
+=over 2
+
+=item *
+
+Your fair dealing or fair use rights, or other applicable
+copyright exceptions and limitations;
+
+=item *
+
+The author's moral rights;
+
+=item *
+
+Rights other persons may have either in the work itself or in
+how the work is used, such as publicity or privacy rights.
+
+=back
+
+=back
+
+=over 9
+
+=item B<Notice>
+
+For any reuse or distribution, you must make clear to others the
+license terms of this work.
+
+=back
+
+A copy of the full license is included in the file as cc-by-sa.txt.
+
+=head1 DEPENDENCIES
+
+B<histogram> uses Perl, and the Perl module Getopt::Long.
+
+
+=head1 SEE ALSO
+
+B<cut>(1)
+
+=cut
+
+# histogram -d , a1,b2,c3 d4,5,e76
 # histogram 1 2 3
 # histogram a:1 b:2 c:3
 # histogram "a a":1 b:2 c:3
 # histogram "a a" 1 b 2 c 3
 # (echo a a 1; echo b 2; echo c 3) | histogram
-#
+# histogram --post aaaaaaaaaaa1 b10
 
-my $raw;
+use strict;
+use Getopt::Long;
+
+GetOptions
+    ("delimiter|d=s" => \$::opt_delimiter,
+     "values-as-headers|t" => \$::opt_vash,
+     "pre" => \$::opt_pre,
+     "post" => \$::opt_post,
+     "log" => \$::opt_log,
+    ) || die_usage();
+
+my @raw;
 if($#ARGV != -1) {
     @raw = @ARGV;
 } else {
     @raw = (<>);
     chomp @raw;
 }
+if($::opt_delimiter) {
+    my @my_raw = ();
+    for(@raw) {
+	push(@my_raw,split/$::opt_delimiter/,$_);
+    }
+    @raw = @my_raw;
+}
+
 
 my @header=();
+my @value=();
 my $has_header = 0;
+my $i = 0;
 for(@raw) {
-    if(s/\s*(\d+(\.\d)?([eE][-+]?\d+)?)\s*$//) {
-	push(@values, eval $1);
+    if(s/\s*(\d+(\.\d+)?([eE][-+]?\d+)?)\s*$//) {
+	push(@value, eval $1);
     }
     if(/\S/) {
-	push(@header, $_);
+	$header[$i] = $_;
+	$i++;
+	if(not $::opt_pre and not $::opt_post) {
+	    # There is a header, so you probably want it printed
+	    $::opt_pre = 1;
+	}
     }
 }
-if($numbers_as_headers) {
-    @header = @values;
+
+if($::opt_vash or not @header) {
+    @header = @value;
+} else {
+    @header = map { defined $_ ? $_ : "" } @header;
 }
 
-my $max = max(@values);
+if($::opt_log) {
+    @value = map { $_ > 0 ? log($_) : 0 } @value;
+}
+
+my $max = max(@value);
 my @header_len = map { length $_ } @header;
 my $max_header_len = max(@header_len) || 0;
-my $width = terminal_width()-$max_header_len-2;
-my $factor = $width/$max;
 
-for(my $i = 0; $i <= $#values; $i++) {
-    if($pre) {
-	bar(sprintf("%".$max_header_len."s",$header[$i]),$values[$i]*$factor);
+for(my $i = 0; $i <= $#value; $i++) {
+    if($::opt_pre) {
+	if($::opt_post) {
+	    bar($header[$i]." ",$value[$i]," ".$header[$i],$max,$max_header_len);
+	} else {
+	    bar($header[$i]." ",$value[$i],"",$max,$max_header_len);
+	}
+    } elsif($::opt_post) {
+	bar("",$value[$i]," ".$header[$i],$max,$max_header_len);
     } else {
-	bar("",$values[$i]*$factor,$header[$i]);
+	bar("",$value[$i],"",$max,$max_header_len);
     }
 }
 
@@ -69,11 +331,18 @@ sub terminal_width {
 }
 
 sub bar {
-    my ($pre,$l,$post) = @_;
+    my ($pre,$v,$post,$max,$max_header_len) = @_;
     my @eight = qw(█ ▉ ▊ ▋ ▌ ▍ ▎ ▏);
-    $pre &&= $pre." ";
-    $post &&= " ".$post;
-    $pre ||="";
-    $post ||="";
-    print $pre,$eight[0] x $l, $eight[7-($l*8)%8],$post,"\n";
+    push @eight,"";
+    my $header_len = ($pre ? $max_header_len+1 : 0) + ($post ? $max_header_len+1 : 0);
+    my $width = terminal_width()-$header_len;
+    my $factor = $width/$max;
+    my $l = $v*$factor;
+    my $pres = "";
+
+    if($pre) {
+	$pres = sprintf("%".($max_header_len+1)."s",$pre)
+    }
+
+    print $pres,$eight[0] x $l, $eight[8-($l*8)%8],$post,"\n";
 }
