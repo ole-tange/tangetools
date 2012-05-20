@@ -6,7 +6,8 @@ histogram - make a histogram on the command line
 
 =head1 SYNOPSIS
 
-B<histogram> [--delimiter <delim>|-d <delim>] [--pre|--post] [--log|-l] [--values-as-headers|-t] <list of numbers>
+B<histogram> [--delimiter <delim>|-d <delim>] [--pre|--post]
+[--log|-l] [--values-as-headers|-t] [--values-before-headers|-b] <list of numbers>
 
 B<cat> <file with numbers> | B<histogram> [options]
 
@@ -86,7 +87,60 @@ See also: B<--pre>
 Use the numbers as headers.
 
 
+=item B<--values-before-headers>
+
+=item B<-b>
+
+Normally headers are given before the
+value. B<--values-before-headers> looks the header after the value.
+
+
 =back
+
+
+=head1 EXAMPLE: git: number of commits in the last year, by author
+
+git shortlog -s --after="1 years" | histogram -b
+
+
+=head1 EXAMPLE: git: number of commits per day
+
+git log --format=%ai | cut -d\  -f1 | uniq -c | histogram -b --post
+
+
+=head1 EXAMPLE: git: commits by hour of the day
+
+git log --pretty=format:'%ai' | perl -pe 's/.* (\d\d):.*/$1/' | sort  -n | uniq -c | histogram -b
+
+
+=head1 EXAMPLE: run time of processes
+
+ps -e | tail -n +2 | perl -pe 's/.*(\d\d):(\d\d):(\d\d) (.*)/($1*3600+$2*60+$3)." $4"/e' | histogram -b -l
+
+
+=head1 EXAMPLE: Letter frequencies in a text file
+
+cat file | perl -ne 'print map {uc($_),"\n"} split//,$_' | sort | uniq -c | histogram -b
+
+
+=head1 EXAMPLE: Number of HTTP requests per day
+
+cat apache.log | cut -d\  -f4 | cut -d/ -f 1,2 | uniq -c | histogram -b
+
+
+=head1 EXAMPLE: Beijing Air Quality Index
+
+curl -s https://twitter.com/statuses/user_timeline/15527964.rss | grep /description | perl -nle 'print "$1 $2" if /(\S+ \S+); PM2.5;[^;]+; (\d+)/' | histogram
+
+
+=head1 EXAMPLE: Visualize ping times
+
+ping -i .2 -c 10 google.com | grep -oP 'time=\K\S*' | histogram -t --post
+
+
+=head1 EXAMPLE: Visualize filesize inside a directory
+
+du -s * | histogram -b
 
 
 =head1 BUGS
@@ -231,6 +285,7 @@ B<cut>(1)
 # histogram "a a" 1 b 2 c 3
 # (echo a a 1; echo b 2; echo c 3) | histogram
 # histogram --post aaaaaaaaaaa1 b10
+# seq 10 | histogram -t --pre
 
 use strict;
 use Getopt::Long;
@@ -238,6 +293,7 @@ use Getopt::Long;
 GetOptions
     ("delimiter|d=s" => \$::opt_delimiter,
      "values-as-headers|t" => \$::opt_vash,
+     "values-before-headers|b" => \$::opt_vbh,
      "pre" => \$::opt_pre,
      "post" => \$::opt_post,
      "log" => \$::opt_log,
@@ -264,8 +320,14 @@ my @value=();
 my $has_header = 0;
 my $i = 0;
 for(@raw) {
-    if(s/\s*(\d+(\.\d+)?([eE][-+]?\d+)?)\s*$//) {
-	push(@value, eval $1);
+    if($::opt_vbh) {
+	if(s/^\s*(\d+(\.\d+)?([eE][-+]?\d+)?)\s*//) {
+	    push(@value, eval $1);
+	}
+    } else {
+	if(s/\s*(\d+(\.\d+)?([eE][-+]?\d+)?)\s*$//) {
+	    push(@value, eval $1);
+	}
     }
     if(/\S/) {
 	$header[$i] = $_;
@@ -280,6 +342,7 @@ for(@raw) {
 if($::opt_vash or not @header) {
     @header = @value;
 } else {
+    $header[$#value+1]="";
     @header = map { defined $_ ? $_ : "" } @header;
 }
 
