@@ -23,27 +23,27 @@ The list of numbers can be formatted as:
 
 =item *
 
-Line with CSV: B<histogram> -d , 1,1.02,3.1
+Line with CSV: B<histogram> -d , 1,1.01,3.1
 
 =item *
 
-Line with white space separated values: B<histogram> 1 1.02 3.1
+Line with white space separated values: B<histogram> 1 1.01 3.1
 
 =item *
 
-Line with white space separated headers+values: B<histogram> a 1 b 1.02 c 3.1
+Line with white space separated headers+values: B<histogram> a 1 b 1.01 c 3.1
 
 =item *
 
-One value per line: (echo 1; echo 1.02; echo 3.1) | B<histogram>
+One value per line: (echo 1; echo 1.01; echo 3.1) | B<histogram>
 
 =item *
 
-One white space separated header+value per line: (echo a 1; echo b 1.02; echo c 3.1) | B<histogram>
+One white space separated header+value per line: (echo a 1; echo b 1.01; echo c 3.1) | B<histogram>
 
 =item *
 
-One comma separated header+value per line: (echo a,1; echo b,1.02; echo c,3.1) | B<histogram> -d ,
+One comma separated header+value per line: (echo a,1; echo b,1.01; echo c,3.1) | B<histogram> -d ,
 
 =back
 
