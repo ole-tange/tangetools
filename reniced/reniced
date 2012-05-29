@@ -1,7 +1,7 @@
 #!/usr/bin/perl -w
 
 init_whitelist();
-renice_all(60);
+renice_all(5*60);
 
 sub init_whitelist {
     my @whitelist_commands;
@@ -66,7 +66,7 @@ sub mail {
 	 '',
 	 "    @command",
 	 '',
-	 "has been using more than $cpu_seconds CPU seconds. I have therefore niced it to nice level 19.",
+	 "has been using more than $cpu_seconds CPU seconds. I have therefore niced it to nice level 15.",
 	 '',
 	 'There is no harm done, this is purely for your information so you know what happened and how',
 	 'to avoid it.',
@@ -106,7 +106,7 @@ sub user_pid_list {
 
 sub renice {
     my @pid = @_;
-    `renice -n 19 -p @pid 2>&1`;
+    `renice -n 15 -p @pid 2>&1`;
     return $?;
 }
 
