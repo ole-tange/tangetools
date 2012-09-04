@@ -10,5 +10,5 @@ upsidedown/upsidedown.1: upsidedown/upsidedown
 	pod2man upsidedown/upsidedown > upsidedown/upsidedown.1
 
 install:
-	parallel ln -sf `pwd`/{}/{} /usr/local/bin/{} ::: blink reniced em field forever neno rn stdout tracefile w4it-for-port-open upsidedown histogram
+	parallel ln -sf `pwd`/{}/{} /usr/local/bin/{} ::: blink reniced em field forever neno rn stdout tracefile w4it-for-port-open upsidedown histogram goodpasswd
 	parallel ln -sf `pwd`/{} /usr/local/share/man/man1/{/} ::: */*.1
