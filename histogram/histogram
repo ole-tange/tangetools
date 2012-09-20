@@ -2,7 +2,7 @@
 
 =head1 NAME
 
-histogram - make a histogram on the command line
+histogram - make and display a histogram on the command line
 
 =head1 SYNOPSIS
 
@@ -110,7 +110,12 @@ git log --format=%ai | cut -d\  -f1 | uniq -c | histogram -b --post
 
 =head1 EXAMPLE: git: commits by hour of the day
 
-git log --pretty=format:'%ai' | perl -pe 's/.* (\d\d):.*/$1/' | sort  -n | uniq -c | histogram -b
+git log --format=%ai | perl -pe 's/.* (\d\d):.*/$1/' | sort  -n | uniq -c | histogram -b
+
+
+=head1 EXAMPLE: git: commits by day of the week
+
+git log --format=%ad |cut -d\  -f1 | sort  -n | uniq -c | histogram -b       
 
 
 =head1 EXAMPLE: run time of processes
