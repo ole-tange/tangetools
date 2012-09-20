@@ -14,12 +14,16 @@ B<blink> I<action> I<what>
 
 =head1 DESCRIPTION
 
-B<blink> blinks a device in an external harddisk enclosure.
+B<blink> blinks a device in a harddisk enclosure.
 
 If no I<action> is given the blinking be will toggled.
 
-If no I<device> is given all detected disks in external enclosures will
-be used.
+If no I<device> is given all detected disks in enclosures will be
+used.
+
+If no I<action> and no I<device> is given all detected harddisks will
+be off and all empty slots or slots with non-detected harddisks in
+enclosures will blink. These slots should be safe to remove.
 
 
 =head1 OPTIONS
@@ -92,12 +96,17 @@ B<blink /dev/sdf>
 
 =head1 EXAMPLE: Blink all undetected slots
 
-To blink all undetected slots we first blink all detected and then toggle all slots:
-
-B<blink; blink -s>
-
 It will be safe to remove disk from all the blinking slots as the
 slots are either empty or not detected.
+
+B<blink>
+
+
+=head1 EXAMPLE: Turn off blinking of all slots
+
+Turn off the blinking.
+
+B<blink -s -f>
 
 
 =head1 EXIT STATUS
@@ -158,6 +167,18 @@ if(@ARGV) {
     for(@ARGV) {
       s:/dev/::g;
     }
+}
+
+if(not ($::opt_on or $::opt_off or $::opt_toggle or 
+	$::opt_alldetected or $::opt_allslots or @ARGV)) {
+    # Default:
+    #   Turn on all
+    #   Turn off all-detected
+    $locate = "/sys/class/enclosure/*/*/locate";
+    on($locate);
+    $locate = "/sys/class/enclosure/*/*/device/enclosure*/locate";
+    off($locate);
+    exit;
 }
 
 if($::opt_alldetected) {
