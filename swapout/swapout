@@ -1,0 +1,29 @@
+#!/usr/bin/perl
+
+$timeout = shift || 10;
+
+$total=10000000;
+
+my $giga=2**30;
+my $forks=1;
+
+do{
+    $start=time;
+    $total=int(1+$total*1.03);
+    $missing=$total-$sofar;
+    $buf{$forks}{$total}="x"x$missing;
+    $sofar=$total;
+    $timediff=time-$start;
+    print "Chunk size: $missing Time for swapping: $timediff seconds. Total memory used: $total\n";
+    if($total > $forks * $giga) {
+	if($pid=fork()) {
+	    print "child spawn ",$forks,"\n";
+	    wait;
+	    print "child exit ",$forks,"\n";
+	} else {
+	    $buf{$forks}=1;
+	    $forks++;
+	}
+    }
+} until ($pid or $timediff>$timeout);
+print "exit ",$forks,"\n";
