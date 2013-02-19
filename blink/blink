@@ -206,21 +206,21 @@ if($::opt_on) {
 
 sub on {
     my $locate = shift;
-    print("parallel -j1 echo 1 \\> ::: $locate\n");
-    system("parallel -j1 echo 1 \\> ::: $locate\n");
+    print(q{bash -c 'parallel -j1 echo 1 \\> {} ::: }. $locate."'\n");
+    system(q{bash -c 'parallel -j1 echo 1 \\> {} ::: }. $locate."'\n");
 }
 
 
 sub off {
     my $locate = shift;
-    print("parallel -j1 echo 0 \\> ::: $locate\n");
-    system("parallel -j1 echo 0 \\> ::: $locate\n");
+    print(q{bash -c 'parallel -j1 echo 0 \\> {} ::: }. $locate."'\n");
+    system(q{bash -c 'parallel -j1 echo 0 \\> {} ::: }. $locate."'\n");
 }
 
 
 sub toggle {
     my $locate = shift;
     # If the file 'locate' contains 1 it should be put to 0.
-    print('parallel -j1 grep -q 1 {} \; echo \$? \\> {} :::'." $locate\n");
-    system('parallel -j1 grep -q 1 {} \; echo \$? \\> {} :::'." $locate\n");
+    print(q{bash -c 'parallel -j1 grep -q 1 {} \; echo \$? \\> {} ::: }. $locate."'\n");
+    system(q{bash -c 'parallel -j1 grep -q 1 {} \; echo \$? \\> {} ::: }. $locate."'\n");
 }
