@@ -1,0 +1,4 @@
+#!/bin/bash
+
+mtr -t -o "LSD NBAW" 8.8.8.8
+

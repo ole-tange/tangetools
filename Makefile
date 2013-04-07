@@ -13,5 +13,5 @@ tracefile/tracefile.1: tracefile/tracefile.pod
 	pod2man tracefile/tracefile.pod > tracefile/tracefile.1
 
 install:
-	parallel ln -sf `pwd`/{}/{} /usr/local/bin/{} ::: blink reniced em field forever neno rn stdout tracefile w4it-for-port-open upsidedown histogram goodpasswd
+	parallel ln -sf `pwd`/{}/{} /usr/local/bin/{} ::: blink reniced em field forever neno rn stdout tracefile w4it-for-port-open upsidedown histogram goodpasswd mtrr not summer
 	parallel ln -sf `pwd`/{} /usr/local/share/man/man1/{/} ::: */*.1
