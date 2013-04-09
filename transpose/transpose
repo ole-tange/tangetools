@@ -1,0 +1,88 @@
+#!/usr/bin/perl -w
+
+use English;
+use FileCache;
+use File::Temp;
+
+my $delimiter = shift;
+my $buffer = shift;
+
+# Use at most 1000M before flushing
+$buffer ||= 1000_000_000;
+# Perl makes the buffer baloon to 10 times the requested value
+$buffer /= 10;
+$max_col_size = $buffer;
+my $delimiter_regexp = $delimiter;
+$delimiter_regexp =~ s/(\W)/\\$1/g;
+my @current;
+my $last_t = 0;
+my $lineno = 0;
+my %col;
+while(<>) {
+    chomp;
+    # Split current line into columns
+    @current = split /$delimiter_regexp/o, $_;
+    my $t = 0;
+    map { 
+	push(@{$col{$t}},$_);
+	$col_size{$t} += length $_;
+	if($col_size{$t} > $max_col_size) {
+	    flush(\%col,$t);
+	    $col_size{$t} = 0;
+	}
+	$t++;
+    } @current;
+    if($t != $last_t) {
+	if(0 == $last_t) {
+	    $last_t = $t;
+	    $max_col_size = $buffer/$last_t;
+	} else {
+	    warning("Number of columns in line $NR: $t != $last_t\n");
+	}
+    }
+}
+flush(\%col);
+merge();
+
+sub flush {
+    my $col_ref = shift;
+    my @cols_to_flush = @_;
+    if(not @cols_to_flush) {
+	@cols_to_flush = keys %$col_ref;
+    }
+    for my $c (@cols_to_flush) {
+	$Global::tempfile{$c} ||= tmpnam();
+	my $fh = cacheout $Global::tempfile{$c};
+	# This will print one delimiter too much, which we will deal with later
+	print $fh map { $_,$delimiter } @{$col_ref->{$c}};
+	delete $col_ref->{$c};
+    }
+}
+
+sub merge {
+    for my $c (sort keys %Global::tempfile) {
+	my $fh = cacheout $Global::tempfile{$c};
+	# truncate by length of delimiter to get rid of the last $delimiter
+	seek $fh,-length($delimiter),SEEK_END;
+	truncate $fh, tell $fh;
+	# Make sure the file is closed of writing
+	close $fh;
+	open($fh, "<", $Global::tempfile{$c}) || die;
+	my $buf;
+	while(sysread($fh,$buf,1000_000)) {
+	    print $buf;
+	}
+	print "\n";
+	unlink $Global::tempfile{$c};
+    }
+}
+
+sub warning {
+    my @w = @_;
+    print STDERR "transpose: Warning: ", @w;
+}
+
+sub error {
+    my @w = @_;
+    print STDERR "transpose: Error: ", @w;
+}
