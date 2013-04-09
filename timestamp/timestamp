@@ -1,0 +1,268 @@
+#!/usr/bin/perl
+
+=head1 NAME
+
+timestamp - prepend timestamp to output
+
+=head1 SYNOPSIS
+
+B<somecommand> | B<timestamp> [--delta] [--rfc|--iso|--iso-time|--epoch]
+
+=head1 DESCRIPTION
+
+B<timestamp> prepends stdin (standard input) with a timestamp.
+
+=over 9
+
+=item B<--delta>
+
+Regard start time as epoch and thus show difference between start time
+and now.
+
+
+=item B<--rfc>
+
+Output time format in RFC822 (E.g. Wed, 30 Jan 2013 13:57:58 GMT).
+
+
+=item B<--iso>
+
+Output time format in ISO8601 (E.g. 2013-01-30T13:57:58.322).
+
+
+=item B<--iso-time>
+
+Output time format in ISO8601/time only (E.g. 13:57:58.322).
+
+
+=item B<--epoch>
+
+Output time format as seconds since 1970-01-01T00:00:00 (E.g. 1359557768.423).
+
+=back
+
+=head1 EXAMPLES
+
+=head2 Timestamp vmstat
+
+B<vmstat 1 | timestamp>
+
+
+=head2 Timestamp each step in setting up/tearing down ssh connection:
+
+B<ssh localhost echo test | timestamp --delta --epoch>
+
+
+=head1 REPORTING BUGS
+
+B<timestamp> is part of tangetools. Report bugs to <tools@tange.dk>.
+
+
+=head1 AUTHOR
+
+Copyright (C) 2013 Ole Tange http://ole.tange.dk
+
+
+=head1 LICENSE
+
+Copyright (C) 2013 Free Software Foundation, Inc.
+
+This program is free software; you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation; either version 3 of the License, or
+at your option any later version.
+
+This program is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with this program.  If not, see <http://www.gnu.org/licenses/>.
+
+=head2 Documentation license I
+
+Permission is granted to copy, distribute and/or modify this documentation
+under the terms of the GNU Free Documentation License, Version 1.3 or
+any later version published by the Free Software Foundation; with no
+Invariant Sections, with no Front-Cover Texts, and with no Back-Cover
+Texts.  A copy of the license is included in the file fdl.txt.
+
+=head2 Documentation license II
+
+You are free:
+
+=over 9
+
+=item B<to Share>
+
+to copy, distribute and transmit the work
+
+=item B<to Remix>
+
+to adapt the work
+
+=back
+
+Under the following conditions:
+
+=over 9
+
+=item B<Attribution>
+
+You must attribute the work in the manner specified by the author or
+licensor (but not in any way that suggests that they endorse you or
+your use of the work).
+
+=item B<Share Alike>
+
+If you alter, transform, or build upon this work, you may distribute
+the resulting work only under the same, similar or a compatible
+license.
+
+=back
+
+With the understanding that:
+
+=over 9
+
+=item B<Waiver>
+
+Any of the above conditions can be waived if you get permission from
+the copyright holder.
+
+=item B<Public Domain>
+
+Where the work or any of its elements is in the public domain under
+applicable law, that status is in no way affected by the license.
+
+=item B<Other Rights>
+
+In no way are any of the following rights affected by the license:
+
+=over 9
+
+=item *
+
+Your fair dealing or fair use rights, or other applicable
+copyright exceptions and limitations;
+
+=item *
+
+The author's moral rights;
+
+=item *
+
+Rights other persons may have either in the work itself or in
+how the work is used, such as publicity or privacy rights.
+
+=back
+
+=item B<Notice>
+
+For any reuse or distribution, you must make clear to others the
+license terms of this work.
+
+=back
+
+A copy of the full license is included in the file as cc-by-sa.txt.
+
+=head1 DEPENDENCIES
+
+B<timestamp> uses Perl and the Getopt::Long and Time::HiRes modules.
+
+
+=head1 SEE ALSO
+
+B<time>(1)
+
+=cut
+
+
+use Time::HiRes;
+use POSIX qw(strftime);
+use Getopt::Long;
+use strict;
+
+parse_options();
+set_defaults();
+
+$|=1;
+
+my $start = Time::HiRes::time();
+if($opt::delta) {
+    $start = Time::HiRes::time();
+} else {
+    $start = 0;
+}
+
+my ($now,$delta,$to_print,$out);
+
+while(<>) {
+    $now = Time::HiRes::time();
+    $to_print = $now - $start;
+
+    my $tz = strftime("%z", localtime($to_print));
+    $tz =~ s/(\d{2})(\d{2})/$1:$2/;
+
+    my $ms = sprintf "%03d", int(($to_print - int($to_print))*1000); 
+
+    if($opt::rfc) {
+	# RFC822 (actually RFC2822, as the year has 4 digits)
+	print strftime("%a, %d %b %Y %H:%M:%S.".$ms." %z", localtime($to_print)), " ", $_
+    } elsif($opt::iso) {
+	# ISO8601
+	print strftime("%Y-%m-%dT%H:%M:%S".$ms, localtime($to_print)), $tz , " ", $_;
+    } elsif($opt::isotime) {
+	# ISO8601 time part only
+	print strftime("%H:%M:%S.".$ms, localtime($to_print)), $tz, " ", $_;
+    } elsif($opt::epoch) {
+	# Seconds since epoch
+	print strftime("%s.".$ms, localtime($to_print)), " ", $_;
+    } else {
+	::die_bug("no format");
+    }
+}
+
+sub set_defaults {
+    if(not($opt::rfc || $opt::iso || $opt::isotime || $opt::epoch)) {
+	$opt::epoch = 1;
+	$opt::delta = 1;
+    }
+}
+
+sub parse_options {
+    $Global::version = 20130130;
+    $Global::progname = 'timestamp';
+
+    Getopt::Long::Configure ("bundling","require_order");
+    GetOptions("delta|d" => \$opt::delta,
+	       # RFC822
+	       "rfc|r" => \$opt::rfc,
+	       "iso|i" => \$opt::iso,
+	       "ged|epoch|e" => \$opt::epoch,
+	       "iso-time|isotime|time|t" => \$opt::isotime,
+	       "debug|D" => \$opt::debug,
+	       # GNU requirements
+	       "help|h" => \$opt::help,
+	       "version|V" => \$opt::version,
+	) || die_usage();
+
+    if(defined $opt::help) { die_usage(); }
+    if(defined $opt::version) { version(); exit(0); }
+    $Global::debug = $opt::debug;
+}
+
+sub die_bug {
+    my $bugid = shift;
+    print STDERR
+	("$Global::progname: This should not happen. You have found a bug.\n",
+	 "Please contact <tools\@tange.dk> and include:\n",
+	 "* The version number: $Global::version\n",
+	 "* The bugid: $bugid\n",
+	 "* The command line being run\n",
+	 "* The files being read (put the files on a webserver if they are big)\n",
+	 "\n",
+	 "If you get the error on smaller/fewer files, please include those instead.\n");
+    ::wait_and_exit(255);
+}
