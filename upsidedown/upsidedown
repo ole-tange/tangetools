@@ -159,10 +159,10 @@ B<tr>(1)
 use utf8;
 
 my $down = ' @{}'.
-    q{ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz.,';0123456789?!"&()[]/\_‾};
+    q{ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz.,';0123456789?!"&()[]/\_‾=-};
 my @up = (" ",qw(@ } {),
     qw{∀ q Ɔ p Ǝ Ⅎ ⅁ H I ſ ʞ ⅂ W N O Ԁ Ό ᴚ S ⊥ ∩ Ʌ M X ⅄ Z ɐ q ɔ p ǝ ɟ 6 ɥ ı ſ ʞ l},
-       qw{ɯ u o d b ɹ s ʇ n ʌ ʍ x ʎ z ˙ ' , ؛ 0 Ɩ 2 Ɛ ᔭ 5 9 Ɫ 8 6 ¿ ¡ „ ⅋ ) ( ] [ / \ ‾ _});
+       qw{ɯ u o d b ɹ s ʇ n ʌ ʍ x ʎ z ˙ ' , ؛ 0 Ɩ 2 Ɛ ᔭ 5 9 Ɫ 8 6 ¿ ¡ „ ⅋ ) ( ] [ / \ ‾ _ = -});
 
 my %up;
 my @down = split//,$down;
@@ -172,9 +172,20 @@ my @down = split//,$down;
 binmode STDOUT, ':utf8';
 binmode STDIN, ':utf8';
 if(@ARGV) {
-    print @up{reverse split//,"@ARGV"},"\n";
+    print upsidedown("@ARGV"),"\n";
 } else {
     while(<>) {
-	print @up{reverse split//,$_},"\n";
+	print upsidedown($_),"\n";
     }
+}
+
+sub upsidedown {
+    my $string = shift;
+    my @r = ();
+    for (reverse split//,$string) {
+	# Return the letter upside down
+	# - or itself if not upside down defined
+	push @r, ($up{$_} or $_);
+    }
+    return @r;
 }
