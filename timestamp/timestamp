@@ -14,7 +14,7 @@ B<timestamp> prepends stdin (standard input) with a timestamp.
 
 =over 9
 
-=item B<--delta>
+=item B<--delta> (default)
 
 Regard start time as epoch and thus show difference between start time
 and now.
@@ -35,7 +35,7 @@ Output time format in ISO8601 (E.g. 2013-01-30T13:57:58.322).
 Output time format in ISO8601/time only (E.g. 13:57:58.322).
 
 
-=item B<--epoch>
+=item B<--epoch> (default)
 
 Output time format as seconds since 1970-01-01T00:00:00 (E.g. 1359557768.423).
 
@@ -50,7 +50,7 @@ B<vmstat 1 | timestamp>
 
 =head2 Timestamp each step in setting up/tearing down ssh connection:
 
-B<ssh localhost echo test | timestamp --delta --epoch>
+B<ssh -v localhost echo test 2>&1 | timestamp --delta --epoch>
 
 
 =head1 REPORTING BUGS

@@ -43,6 +43,18 @@ List only files once.
 =back
 
 
+=head1 EXAMPLES
+
+=head2 EXAMPLE: Find the missing package
+
+Assume you have a program B<foo>. When it runs it fails with: I<foo:
+error: missing library>. It does not say with file is missing, but you
+have a hunch that you just need to install a package - you just do not
+know which one.
+
+    tracefile -n -u foo | apt-file -f search -
+
+
 =head1 REPORTING BUGS
 
 Report bugs to <tange@gnu.org>.
