@@ -124,7 +124,7 @@
 .\" ========================================================================
 .\"
 .IX Title "TIMESTAMP 1"
-.TH TIMESTAMP 1 "2013-01-30" "perl v5.14.2" "User Contributed Perl Documentation"
+.TH TIMESTAMP 1 "2013-05-22" "perl v5.14.2" "User Contributed Perl Documentation"
 .\" For nroff, turn off justification.  Always turn off hyphenation; it makes
 .\" way too many mistakes in technical documents.
 .if n .ad l
@@ -137,8 +137,8 @@ timestamp \- prepend timestamp to output
 .SH "DESCRIPTION"
 .IX Header "DESCRIPTION"
 \&\fBtimestamp\fR prepends stdin (standard input) with a timestamp.
-.IP "\fB\-\-delta\fR" 9
-.IX Item "--delta"
+.IP "\fB\-\-delta\fR (default)" 9
+.IX Item "--delta (default)"
 Regard start time as epoch and thus show difference between start time
 and now.
 .IP "\fB\-\-rfc\fR" 9
@@ -150,9 +150,9 @@ Output time format in \s-1ISO8601\s0 (E.g. 2013\-01\-30T13:57:58.322).
 .IP "\fB\-\-iso\-time\fR" 9
 .IX Item "--iso-time"
 Output time format in ISO8601/time only (E.g. 13:57:58.322).
-.IP "\fB\-\-epoch\fR" 9
-.IX Item "--epoch"
-Output time format as seconds since 1970\-01\-01T00:00:00 (E.g. 234567890.123).
+.IP "\fB\-\-epoch\fR (default)" 9
+.IX Item "--epoch (default)"
+Output time format as seconds since 1970\-01\-01T00:00:00 (E.g. 1359557768.423).
 .SH "EXAMPLES"
 .IX Header "EXAMPLES"
 .SS "Timestamp vmstat"
@@ -160,7 +160,7 @@ Output time format as seconds since 1970\-01\-01T00:00:00 (E.g. 234567890.123).
 \&\fBvmstat 1 | timestamp\fR
 .SS "Timestamp each step in setting up/tearing down ssh connection:"
 .IX Subsection "Timestamp each step in setting up/tearing down ssh connection:"
-\&\fBssh localhost echo test | timestamp \-\-delta \-\-epoch\fR
+\&\fBssh \-v localhost echo test 2\fR&1 | timestamp \-\-delta \-\-epoch>
 .SH "REPORTING BUGS"
 .IX Header "REPORTING BUGS"
 \&\fBtimestamp\fR is part of tangetools. Report bugs to <tools@tange.dk>.

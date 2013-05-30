@@ -54,6 +54,10 @@ know which one.
 
     tracefile -n -u foo | apt-file -f search -
 
+Here B<ls> tries to find B</usr/include/shisa.h>. If it fails,
+B<apt-file> will search for which package it is in:
+
+    tracefile -n -u ls /usr/include/shisa.h | apt-file -f search -
 
 =head1 REPORTING BUGS
 
