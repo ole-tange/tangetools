@@ -1,0 +1,44 @@
+#!/bin/bash
+
+start() {
+    DEVICE=$1
+    BASE=$(basename $DEVICE)
+    OVERLAY=overlay-$BASE
+    
+    SIZE=$(blockdev --getsize $DEVICE)
+    BYTESIZE=$(blockdev --getsize64 $DEVICE)
+    
+    # Create sparse file as big as possible
+    OVLSIZE=$BYTESIZE
+    while ! truncate -s${OVLSIZE} $OVERLAY; do
+      echo $OVLSIZE failed
+      OVLSIZE=$(( OVLSIZE/2 ))
+    done
+    
+    if ! LOOPDEV=$(losetup --show -f -- $OVERLAY); then
+      LOOPS=$(ls /dev/loop* | wc -l)
+      mknod -m 660 /dev/loop$LOOPS b 7 $LOOPS
+      LOOPDEV=$(losetup --show -f -- $OVERLAY)
+    fi
+    
+    echo 0 $SIZE snapshot $DEVICE $LOOPDEV P 8 | dmsetup create $BASE
+    echo Overlay device: /dev/mapper/$BASE
+    echo Overlay file: $OVERLAY
+    echo Stop with:
+    echo dmsetup remove $BASE; rm $OVERLAY
+    echo losetup -d $LOOPDEV
+}
+
+stop() {
+    DEVICE=$1
+    BASE=$(basename $DEVICE)
+    OVERLAY=overlay-$BASE
+    dmsetup remove $BASE
+    # Find the loop device with $OVERLAY and stop it
+    losetup -d $(losetup -j $OVERLAY)
+    rm $OVERLAY
+}
+
+start $1
+
+
