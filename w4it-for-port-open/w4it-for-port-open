@@ -3,7 +3,7 @@
 HOST=$1
 PORT=$2
 
-TCPTRACEROUTE=$( which tcptraceroute )
+NC=$( which nc )
 
 usage () {
   echo "Usage:"
@@ -33,13 +33,7 @@ print_up_but_port_closed () {
 port_is_open () {
     # If tcptraceroute stops working use:
     # echo | nc -w 2 $HOST $PORT || failed
-    OUT=$(tcptraceroute -f 255 -m 255 -q 1 -w 1 $HOST $PORT 2>&1)
-    if echo "$OUT" | grep 'Destination not reached' >/dev/null ; then
-	print_not_reachable
-	OPEN=no
-    elif echo "$OUT" | grep '\[closed\]' >/dev/null ; then
-	print_up_but_port_closed
-	sleep 1
+    if $NC -z -w 2 $HOST $PORT 2>&1 ; then
 	OPEN=no
     else
 	OPEN=yes
@@ -52,8 +46,8 @@ fi
 if [ -z "$PORT" ] ; then
   PORT=22
 fi
-if [ -z "$TCPTRACEROUTE" ] ; then
-  echo "Error, 'tcptraceroute' not installed."
+if [ -z "$NC" ] ; then
+  echo "Error, 'nc' not installed."
   exit 2
 fi
 

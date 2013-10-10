@@ -16,5 +16,5 @@ timestamp/timestamp.1: timestamp/timestamp
 	pod2man timestamp/timestamp > timestamp/timestamp.1
 
 install:
-	parallel ln -sf `pwd`/{}/{} /usr/local/bin/{} ::: blink reniced em field forever neno rn stdout tracefile w4it-for-port-open upsidedown histogram goodpasswd mtrr not summer timestamp
+	parallel ln -sf `pwd`/{}/{} /usr/local/bin/{} ::: blink reniced em field forever neno rn stdout tracefile w4it-for-port-open upsidedown histogram goodpasswd mtrr not summer timestamp transpose
 	parallel ln -sf `pwd`/{} /usr/local/share/man/man1/{/} ::: */*.1
