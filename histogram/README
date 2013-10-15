@@ -1,0 +1,44 @@
+--input h,v
+
+  foo,2
+  bar,4
+
+--input hv
+
+  foo 2
+  bar 4
+
+--input ihv
+
+  ignore foo 2
+  ignore bar 4
+
+--format hbv
+
+  foo ====== 2
+  bar ============ 4
+
+--format HbV
+
+  =foo=2=
+  =bar=========4=
+
+--format hb
+
+  foo ======
+  bar ============
+
+--format hb%
+
+  foo ====== 50%
+  bar ============ 100%
+
+--format hbv%
+
+  foo ====== 2 50%
+  bar ============ 4 100%
+
+--format hVb%
+
+  foo =2===== 50%
+  bar =4=========== 100%
