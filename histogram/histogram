@@ -417,7 +417,7 @@ my $term_width = terminal_width();
 
 # --format hVb%
 # --format Vhb%
-my $format = ($opt::format || "vbh%");
+my $format = ($opt::format || "vbhp");
 my ($front, $end) = split /b/, $format;
 my ($front_inside, $front_outside) = ($front,$front);
 $front_inside =~ s/[a-z]//g; # Remove outsides
@@ -433,12 +433,12 @@ for(my $i = 0; $i <= $#$value_ref; $i++) {
     my %end_repl = (
 	'V' => sprintf(" %".$max_value_length."s",$value),
 	'H' => sprintf(" %".$max_header_length."s",$header),
-	'%' => sprintf(" %3d%%",int($value/$max_value*100)),
+	'P' => sprintf(" %3d%%",int($value/$max_value*100)),
 	);
     my %front_repl = (
 	'V' => sprintf("%".$max_value_length."s ",$value),
 	'H' => sprintf("%-".$max_header_length."s ",$header),
-	'%' => sprintf("%3d%% ",int($value/$max_value*100)),
+	'P' => sprintf("%3d%% ",int($value/$max_value*100)),
 	);
     my $front_outside_string = $front_outside;
     $front_outside_string =~ s/(.)/$front_repl{uc($1)}/g;
@@ -544,7 +544,38 @@ sub bar_string {
     my ($width,$factor,$front,$end) = @_;
     my @eight = (qw(█ ▉ ▊ ▋ ▌ ▍ ▎ ▏));
     my $l = $width * $factor;
-    return( ($eight[0] x int($l)). ($eight[7-(int($l*8))%8]). (" "x($width-int($l))) );
+    my $black = int($l);
+    my $white = $width-int($l);
+#    $front="F".$front;
+#    $end=$end."E";
+    if(length $front < $black) {
+	# Paint $front reverse
+	$black -= length $front;
+	$width -= length $front;
+    } else {
+	# label overlaps white
+	# TODO reverse the first $black chars
+	$black = 0;
+	$l = 0;
+	$white = $width - length $front;
+    }
+    if(length $end < $white) {
+	# Just append $end
+	$white -= length $end;
+	$width -= length $end;
+    } else {
+	# label overlaps black
+	# TODO reverse the first length($end)-$white chars
+	$white = 0;
+	$l = 0.9;
+	$black = $width - length $end;
+    }
+    my $middle =  ($eight[0] x $black). ($eight[7-(int($l*8))%8]). (" "x$white);
+
+    return $front . $middle . $end;
+	
+
+#    return( ($eight[0] x int($l)). ($eight[7-(int($l*8))%8]). (" "x($width-int($l))) );
 }
 
 sub bar {
