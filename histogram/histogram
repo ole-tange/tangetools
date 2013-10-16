@@ -296,12 +296,14 @@ use strict;
 use Getopt::Long;
 
 GetOptions
-    ("delimiter|d=s" => \$::opt_delimiter,
-     "values-as-headers|t" => \$::opt_vash,
-     "values-before-headers|b" => \$::opt_vbh,
-     "pre" => \$::opt_pre,
-     "post" => \$::opt_post,
-     "log" => \$::opt_log,
+    ("delimiter|d=s" => \$opt::delimiter,
+     "values-as-headers|t" => \$opt::vash,
+     "values-before-headers|b" => \$opt::vbh,
+     "pre" => \$opt::pre,
+     "post" => \$opt::post,
+     "log" => \$opt::log,
+     "input|i=s" => \$opt::input,
+     "format|f=s" => \$opt::format,
     ) || die_usage();
 
 my @raw;
@@ -311,21 +313,157 @@ if($#ARGV != -1) {
     @raw = (<>);
     chomp @raw;
 }
-if($::opt_delimiter) {
-    my @my_raw = ();
-    for(@raw) {
-	push(@my_raw,split/$::opt_delimiter/,$_);
+
+my ($max_value_length, $max_header_length, $max_value_header_length, $header_ref, $value_ref);
+if(not defined $opt::input) {
+    # Guess opt::input
+    my $delimiter = guess_delimiter(@raw);
+    if($opt::delimiter) {
+	# override guessed delimiter if given
+	$delimiter = $opt::delimiter;
+    } elsif(defined $delimiter) {
+	# guess format: (v delimiter h) or (h delimiter v)
+	($max_value_length, $max_header_length, $max_value_header_length, $header_ref, $value_ref) =
+	    parse_raw_given_opt_input("v".$delimiter."h",@raw);
+    } else {
+	# guess format: v
+	($max_value_length, $max_header_length, $max_value_header_length, $header_ref, $value_ref) =
+	    parse_raw_given_opt_input("v",@raw);
+	$header_ref = $value_ref;
+	$max_value_length = $max_header_length;
+	$max_value_header_length = $max_value_length + $max_header_length;
     }
-    @raw = @my_raw;
+    if(scalar(grep /^\d*(\.\d*)?$/, @$header_ref)
+       >
+       scalar(grep /^\d*(\.\d*)?$/, @$value_ref)) {
+	# More headers have numbers than values: swap them
+	($header_ref, $value_ref) = ($value_ref, $header_ref);
+    }
+} else {
+    ($max_value_length, $max_header_length, $max_value_header_length, $header_ref, $value_ref) =
+	parse_raw_given_opt_input($opt::input, @raw);
+}
+my $max_value = max(@$value_ref);
+
+sub parse_raw_given_opt_input {
+    my ($input,@raw) = @_;
+    # --input overrides --delimiter
+    # --input i v h delimiter
+    # --input ivh => delimiter = \s+ (whitespace)
+    # \S+\s+(\S+)\s+(\S+)
+    # --input i,v;h => ignore , value ; header
+    # \S+\,(\S+)\;(\S+)
+    $input =~ /v.*v/ and die("Only one v is allow in --input");
+    $input =~ /h.*h/ and die("Only one h is allow in --input");
+    if($input =~ /^[ivh]+$/) {
+	# No delimiters => '\s+' (whitespace)
+	$input = join('\s+', split//, $input);
+    }
+    my %part_map = (
+	"h" => '(\S*)',
+	"i" => '\S*',
+	"v" => '(\S*)',
+	);
+    my (@regexp_part, $first_meta_var,$header,$value,@header,@value);
+    for(split //, $input) {
+	# Header, Value
+	if(/[hv]/) {
+	    # Is this h...v or v...h
+	    $first_meta_var ||= $_;
+	}
+	# Header, Value, Ignore
+	if(/[hiv]/) {
+	    push @regexp_part, $part_map{$_};
+	    next;
+	}
+	# Delimiters
+	push @regexp_part, $_;
+    }
+    my $regexp = join("",@regexp_part);
+    for my $rawline (@raw) {
+	$rawline =~ /$regexp/ || die;
+	if(defined $2) {
+	    if($first_meta_var eq "v") {
+		# value,header
+		$value = $1; $header = $2;
+	    } else {
+		# header,value
+		$header = $1; $value = $2;
+	    }
+	}  else {
+	    $header = $1; $value = $1;
+	}
+	# Remove white space
+	$header =~ s/^\s+//;
+	$header =~ s/\s+$//;
+	$value =~ s/^\s+//;
+	$value =~ s/\s+$//;
+	# Find the max string length
+	$max_value_length = max(length($value),$max_value_length);
+	$max_header_length = max(length($header),$max_header_length);
+	$max_value_header_length = max(length($value)+length($header),$max_value_header_length);
+	# Add the values to the table
+	push(@header,$header);
+	push(@value,$value);
+    }
+    
+    return ($max_value_length, $max_header_length, $max_value_header_length, \@header, \@value);
 }
 
+#print "header ",@$header_ref,"\n";
+#print "value ",@$value_ref,"\n";
 
-my @header=();
-my @value=();
+my $term_width = terminal_width();
+
+# --format hVb%
+# --format Vhb%
+my $format = ($opt::format || "vbh%");
+my ($front, $end) = split /b/, $format;
+my ($front_inside, $front_outside) = ($front,$front);
+$front_inside =~ s/[a-z]//g; # Remove outsides
+$front_outside =~ s/[A-Z]//g; # Remove insides
+my ($end_inside, $end_outside) = ($end,$end);
+$end_inside =~ s/[a-z]//g; # Remove outsides
+$end_outside =~ s/[A-Z]//g; # Remove insides
+
+for(my $i = 0; $i <= $#$value_ref; $i++) {
+    # $front_outside, ( $front_inside, BAR, $end_inside ), $end_outside,
+    my $header = $header_ref->[$i];
+    my $value = $value_ref->[$i];
+    my %end_repl = (
+	'V' => sprintf(" %".$max_value_length."s",$value),
+	'H' => sprintf(" %".$max_header_length."s",$header),
+	'%' => sprintf(" %3d%%",int($value/$max_value*100)),
+	);
+    my %front_repl = (
+	'V' => sprintf("%".$max_value_length."s ",$value),
+	'H' => sprintf("%-".$max_header_length."s ",$header),
+	'%' => sprintf("%3d%% ",int($value/$max_value*100)),
+	);
+    my $front_outside_string = $front_outside;
+    $front_outside_string =~ s/(.)/$front_repl{uc($1)}/g;
+    my $end_outside_string = $end_outside;
+    $end_outside_string =~ s/(.)/$end_repl{uc($1)}/g;
+    my $front_inside_string = $front_inside;
+    $front_inside_string =~ s/(.)/$front_repl{uc($1)}/g;
+    my $end_inside_string = $end_inside;
+    $end_inside_string =~ s/(.)/$end_repl{uc($1)}/g;
+
+    my $bar_length = $term_width - length($front_outside_string) - length($end_outside_string);
+
+    my $bar = bar_string($bar_length-1, $value/$max_value,$front_inside_string,$end_inside_string);
+    print $front_outside_string,"$bar",$end_outside_string,"\n";
+}
+    
+#term_width - (max_size_front + max_size_end);
+
+
+my(@header) = @$header_ref;
+my(@value) = @$value_ref;
 my $has_header = 0;
 my $i = 0;
 for(@raw) {
-    if($::opt_vbh) {
+    if($opt::vbh) {
 	if(s/^\s*(\d+(\.\d+)?([eE][-+]?\d+)?)\s*//) {
 	    push(@value, eval $1);
 	}
@@ -337,21 +475,21 @@ for(@raw) {
     if(/\S/) {
 	$header[$i] = $_;
 	$i++;
-	if(not $::opt_pre and not $::opt_post) {
+	if(not $opt::pre and not $opt::post) {
 	    # There is a header, so you probably want it printed
-	    $::opt_pre = 1;
+	    $opt::pre = 1;
 	}
     }
 }
 
-if($::opt_vash or not @header) {
+if($opt::vash or not @header) {
     @header = @value;
 } else {
     $header[$#value+1]="";
     @header = map { defined $_ ? $_ : "" } @header;
 }
 
-if($::opt_log) {
+if($opt::log) {
     @value = map { $_ > 0 ? log($_) : 0 } @value;
 }
 
@@ -360,13 +498,13 @@ my @header_len = map { length $_ } @header;
 my $max_header_len = max(@header_len) || 0;
 
 for(my $i = 0; $i <= $#value; $i++) {
-    if($::opt_pre) {
-	if($::opt_post) {
+    if($opt::pre) {
+	if($opt::post) {
 	    bar($header[$i]." ",$value[$i]," ".$header[$i],$max,$max_header_len);
 	} else {
 	    bar($header[$i]." ",$value[$i],"",$max,$max_header_len);
 	}
-    } elsif($::opt_post) {
+    } elsif($opt::post) {
 	bar("",$value[$i]," ".$header[$i],$max,$max_header_len);
     } else {
 	bar("",$value[$i],"",$max,$max_header_len);
@@ -386,16 +524,27 @@ sub max {
     return $max;
 }
 
-sub terminal_width {
-    if(not $Private::columns) {
-        $Private::columns = $ENV{'COLUMNS'};
-        if(not $Private::columns) {
-            my $resize = qx{ resize 2>/dev/null };
-            $resize =~ /COLUMNS=(\d+);/ and do { $Private::columns = $1; };
-        }
-        $Private::columns ||= 80;
+{
+    my $columns;
+    
+    sub terminal_width {
+	if(not $columns) {
+	    $columns = $ENV{'COLUMNS'};
+	    if(not $columns) {
+		my $resize = qx{ resize 2>/dev/null };
+		$resize =~ /COLUMNS=(\d+);/ and do { $columns = $1; };
+	    }
+	    $columns ||= 80;
+	}
+	return $columns;
     }
-    return $Private::columns;
+}
+
+sub bar_string {
+    my ($width,$factor,$front,$end) = @_;
+    my @eight = (qw(█ ▉ ▊ ▋ ▌ ▍ ▎ ▏));
+    my $l = $width * $factor;
+    return( ($eight[0] x int($l)). ($eight[7-(int($l*8))%8]). (" "x($width-int($l))) );
 }
 
 sub bar {
@@ -412,5 +561,22 @@ sub bar {
 	$pres = sprintf("%".($max_header_len+1)."s",$pre)
     }
 
-    print $pres,$eight[0] x $l, $eight[8-($l*8)%8],$post,"\n";
+#    print $pres,$eight[0] x $l, $eight[8-($l*8)%8],$post,"\n";
+}
+
+sub guess_delimiter {
+    my @raw = @_;
+    my %charcount;
+
+    for(split//,join("",@raw)) {
+	# [a-zA-Z0-9] should never be auto chosen for delimiter
+	/[a-zA-Z0-9]/ and next;
+	$charcount{$_}++
+    }
+    my $guess = (sort { $charcount{$b} <=> $charcount{$a} } keys %charcount)[0];
+    if(defined $guess and $guess =~ /\s/) {
+	# If the guess is a white space, then use 1+ whitespaces
+	$guess = '\s+';
+    }
+    return $guess;
 }
