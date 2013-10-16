@@ -449,7 +449,11 @@ for(my $i = 0; $i <= $#$value_ref; $i++) {
     my $bar_length = $term_width - length($front_outside_string) - length($end_outside_string);
     my $factor;
     if($opt::log) {
+      if($value <= 0 or $max_value <= 0) {
+	$factor = 0;
+      } else {
 	$factor =  log($value)/log($max_value);
+      }
     } else {
 	$factor =  $value/$max_value;
     }
@@ -544,14 +548,23 @@ sub bar_string {
 
 sub guess_delimiter {
     my @raw = @_;
-    my %charcount;
+    my (%charcount,$guess);
 
     for(split//,join("",@raw)) {
 	# [a-zA-Z0-9] should never be auto chosen for delimiter
 	/[a-zA-Z0-9]/ and next;
 	$charcount{$_}++
     }
-    my $guess = (sort { $charcount{$b} <=> $charcount{$a} } keys %charcount)[0];
+    # The guess must be present in all lines
+    for my $g (sort { $charcount{$b} <=> $charcount{$a} } keys %charcount) {
+      defined $g or next;
+      if(grep { not /\Q$g\E/ } @raw) {
+	next;
+      } else {
+	$guess = $g;
+	last;
+      }
+    }
     if(defined $guess and $guess =~ /\s/) {
 	# If the guess is a white space, then use 1+ whitespaces
 	$guess = '\s+';
