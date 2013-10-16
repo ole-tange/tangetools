@@ -97,6 +97,9 @@ value. B<--values-before-headers> looks the header after the value.
 
 =back
 
+(echo 150 hundredfifty;echo 30 thirty;echo 3 three;echo 6 six)|./histogram --format Hbcp 
+(echo 0 zero; echo 50 fifty; echo 150 hundredfifty;echo 130 hundredthirty;echo 3 three;echo 6 six)|./histogram --format HbHCP 
+ls -l|tail -n +2| ./histogram --input iiiiviiih
 
 =head1 EXAMPLE: git: number of commits in the last year, by author
 
@@ -297,10 +300,6 @@ use Getopt::Long;
 
 GetOptions
     ("delimiter|d=s" => \$opt::delimiter,
-     "values-as-headers|t" => \$opt::vash,
-     "values-before-headers|b" => \$opt::vbh,
-     "pre" => \$opt::pre,
-     "post" => \$opt::post,
      "log" => \$opt::log,
      "input|i=s" => \$opt::input,
      "format|f=s" => \$opt::format,
@@ -344,6 +343,7 @@ if(not defined $opt::input) {
 	parse_raw_given_opt_input($opt::input, @raw);
 }
 my $max_value = max(@$value_ref);
+my $total_value = sum(@$value_ref);
 
 sub parse_raw_given_opt_input {
     my ($input,@raw) = @_;
@@ -381,7 +381,7 @@ sub parse_raw_given_opt_input {
     }
     my $regexp = join("",@regexp_part);
     for my $rawline (@raw) {
-	$rawline =~ /$regexp/ || die;
+	$rawline =~ /$regexp/ || die("$regexp not matching $rawline");
 	if(defined $2) {
 	    if($first_meta_var eq "v") {
 		# value,header
@@ -410,14 +410,9 @@ sub parse_raw_given_opt_input {
     return ($max_value_length, $max_header_length, $max_value_header_length, \@header, \@value);
 }
 
-#print "header ",@$header_ref,"\n";
-#print "value ",@$value_ref,"\n";
-
 my $term_width = terminal_width();
 
-# --format hVb%
-# --format Vhb%
-my $format = ($opt::format || "vbhp");
+my $format = ($opt::format || "Vbhp");
 my ($front, $end) = split /b/, $format;
 my ($front_inside, $front_outside) = ($front,$front);
 $front_inside =~ s/[a-z]//g; # Remove outsides
@@ -433,12 +428,14 @@ for(my $i = 0; $i <= $#$value_ref; $i++) {
     my %end_repl = (
 	'V' => sprintf(" %".$max_value_length."s",$value),
 	'H' => sprintf(" %".$max_header_length."s",$header),
-	'P' => sprintf(" %3d%%",int($value/$max_value*100)),
+	'P' => sprintf(" %3d%%",int($value/$max_value*100+0.5)),
+	'C' => sprintf(" %3d%%",int($value/$total_value*100+0.5)),
 	);
     my %front_repl = (
 	'V' => sprintf("%".$max_value_length."s ",$value),
 	'H' => sprintf("%-".$max_header_length."s ",$header),
-	'P' => sprintf("%3d%% ",int($value/$max_value*100)),
+	'P' => sprintf("%3d%% ",int($value/$max_value*100+0.5)),
+	'C' => sprintf(" %3d%%",int($value/$total_value*100+0.5)),
 	);
     my $front_outside_string = $front_outside;
     $front_outside_string =~ s/(.)/$front_repl{uc($1)}/g;
@@ -450,66 +447,16 @@ for(my $i = 0; $i <= $#$value_ref; $i++) {
     $end_inside_string =~ s/(.)/$end_repl{uc($1)}/g;
 
     my $bar_length = $term_width - length($front_outside_string) - length($end_outside_string);
-
-    my $bar = bar_string($bar_length-1, $value/$max_value,$front_inside_string,$end_inside_string);
-    print $front_outside_string,"$bar",$end_outside_string,"\n";
-}
-    
-#term_width - (max_size_front + max_size_end);
-
-
-my(@header) = @$header_ref;
-my(@value) = @$value_ref;
-my $has_header = 0;
-my $i = 0;
-for(@raw) {
-    if($opt::vbh) {
-	if(s/^\s*(\d+(\.\d+)?([eE][-+]?\d+)?)\s*//) {
-	    push(@value, eval $1);
-	}
+    my $factor;
+    if($opt::log) {
+	$factor =  log($value)/log($max_value);
     } else {
-	if(s/\s*(\d+(\.\d+)?([eE][-+]?\d+)?)\s*$//) {
-	    push(@value, eval $1);
-	}
+	$factor =  $value/$max_value;
     }
-    if(/\S/) {
-	$header[$i] = $_;
-	$i++;
-	if(not $opt::pre and not $opt::post) {
-	    # There is a header, so you probably want it printed
-	    $opt::pre = 1;
-	}
-    }
+    my $bar = bar_string($bar_length-1, $factor, $front_inside_string, $end_inside_string);
+    print $front_outside_string, $bar, $end_outside_string, "\n";
 }
 
-if($opt::vash or not @header) {
-    @header = @value;
-} else {
-    $header[$#value+1]="";
-    @header = map { defined $_ ? $_ : "" } @header;
-}
-
-if($opt::log) {
-    @value = map { $_ > 0 ? log($_) : 0 } @value;
-}
-
-my $max = max(@value);
-my @header_len = map { length $_ } @header;
-my $max_header_len = max(@header_len) || 0;
-
-for(my $i = 0; $i <= $#value; $i++) {
-    if($opt::pre) {
-	if($opt::post) {
-	    bar($header[$i]." ",$value[$i]," ".$header[$i],$max,$max_header_len);
-	} else {
-	    bar($header[$i]." ",$value[$i],"",$max,$max_header_len);
-	}
-    } elsif($opt::post) {
-	bar("",$value[$i]," ".$header[$i],$max,$max_header_len);
-    } else {
-	bar("",$value[$i],"",$max,$max_header_len);
-    }
-}
 
 sub max {
     # Returns:
@@ -522,6 +469,19 @@ sub max {
         $max = ($max > $_) ? $max : $_;
     }
     return $max;
+}
+
+
+sub sum {
+    # Returns:
+    #   Sum of values of array
+    my @args = @_;
+    my $sum = 0;
+    for (@args) {
+        # Skip undefs
+        $_ and do { $sum += $_; }
+    }
+    return $sum;
 }
 
 {
@@ -540,16 +500,18 @@ sub max {
     }
 }
 
+
 sub bar_string {
     my ($width,$factor,$front,$end) = @_;
     my @eight = (qw(█ ▉ ▊ ▋ ▌ ▍ ▎ ▏));
     my $l = $width * $factor;
+    my $partial;
     my $black = int($l);
     my $white = $width-int($l);
-#    $front="F".$front;
-#    $end=$end."E";
     my $rev = '[7m';
     my $reset = '[0m';
+    $front =~ s/ *$//;
+    $end =~ s/^ *//;
     if(length $front < $black) {
 	# Paint $front reverse
 	$black -= length $front;
@@ -557,11 +519,10 @@ sub bar_string {
 	$front = $rev . $front . $reset;
     } else {
 	# label overlaps white
-	# TODO reverse the first $black chars
 	$white = $width - length $front;
 	$front = $rev . substr($front,0,$black). $reset.substr($front,$black);
 	$black = 0;
-	$l = 0;
+	$partial = " ";
     }
     if(length $end < $white) {
 	# Just append $end
@@ -569,36 +530,17 @@ sub bar_string {
 	$width -= length $end;
     } else {
 	# label overlaps black
-	# TODO reverse the first length($end)-$white chars
-	$black = $width - (length($end)-$white);
+	$black = $width - length($end);
 	$end = $rev . substr($end,0,length($end)-$white). $reset.substr($end,length($end)-$white);
 	$white = 0;
-	$l = 0.9;
+	$partial = $eight[0];
     }
-    my $middle =  ($eight[0] x $black). ($eight[7-(int($l*8))%8]). (" "x$white);
+    $partial ||= ($eight[7-(int($l*8))%8]);
+    my $middle =  ($eight[0] x $black). $partial . (" "x$white);
 
     return $front . $middle . $end;
-	
-
-#    return( ($eight[0] x int($l)). ($eight[7-(int($l*8))%8]). (" "x($width-int($l))) );
 }
 
-sub bar {
-    my ($pre,$v,$post,$max,$max_header_len) = @_;
-    my @eight = qw(█ ▉ ▊ ▋ ▌ ▍ ▎ ▏);
-    push @eight,"";
-    my $header_len = ($pre ? $max_header_len+1 : 0) + ($post ? $max_header_len+1 : 0);
-    my $width = terminal_width()-$header_len;
-    my $factor = $width/$max;
-    my $l = $v*$factor;
-    my $pres = "";
-
-    if($pre) {
-	$pres = sprintf("%".($max_header_len+1)."s",$pre)
-    }
-
-#    print $pres,$eight[0] x $l, $eight[8-($l*8)%8],$post,"\n";
-}
 
 sub guess_delimiter {
     my @raw = @_;
