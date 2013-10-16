@@ -548,16 +548,20 @@ sub bar_string {
     my $white = $width-int($l);
 #    $front="F".$front;
 #    $end=$end."E";
+    my $rev = '[7m';
+    my $reset = '[0m';
     if(length $front < $black) {
 	# Paint $front reverse
 	$black -= length $front;
 	$width -= length $front;
+	$front = $rev . $front . $reset;
     } else {
 	# label overlaps white
 	# TODO reverse the first $black chars
+	$white = $width - length $front;
+	$front = $rev . substr($front,0,$black). $reset.substr($front,$black);
 	$black = 0;
 	$l = 0;
-	$white = $width - length $front;
     }
     if(length $end < $white) {
 	# Just append $end
@@ -566,9 +570,10 @@ sub bar_string {
     } else {
 	# label overlaps black
 	# TODO reverse the first length($end)-$white chars
+	$black = $width - (length($end)-$white);
+	$end = $rev . substr($end,0,length($end)-$white). $reset.substr($end,length($end)-$white);
 	$white = 0;
 	$l = 0.9;
-	$black = $width - length $end;
     }
     my $middle =  ($eight[0] x $black). ($eight[7-(int($l*8))%8]). (" "x$white);
 
