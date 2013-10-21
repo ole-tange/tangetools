@@ -323,11 +323,11 @@ if(not defined $opt::input) {
     } elsif(defined $delimiter) {
 	# guess format: (v delimiter h) or (h delimiter v)
 	($max_value_length, $max_header_length, $max_value_header_length, $header_ref, $value_ref) =
-	    parse_raw_given_opt_input("v".$delimiter."h",@raw);
+	    parse_raw_given_opt_input('\s*v'.$delimiter."h",@raw);
     } else {
 	# guess format: v
 	($max_value_length, $max_header_length, $max_value_header_length, $header_ref, $value_ref) =
-	    parse_raw_given_opt_input("v",@raw);
+	    parse_raw_given_opt_input('\s*v',@raw);
 	$header_ref = $value_ref;
 	$max_value_length = $max_header_length;
 	$max_value_header_length = $max_value_length + $max_header_length;
@@ -469,7 +469,8 @@ sub max {
     for (@_) {
         # Skip undefs
         defined $_ or next;
-        defined $max or do { $max = $_; next; }; # Set $_ to the first non-undef
+        $_ eq "" and next;
+	defined $max or do { $max = $_; next; }; # Set $_ to the first non-undef
         $max = ($max > $_) ? $max : $_;
     }
     return $max;
