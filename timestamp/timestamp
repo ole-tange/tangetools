@@ -19,6 +19,8 @@ B<timestamp> prepends stdin (standard input) with a timestamp.
 Regard start time as epoch and thus show difference between start time
 and now.
 
+If B<--delta> is repeated: The time spent between each line.
+
 
 =item B<--rfc>
 
@@ -189,18 +191,23 @@ set_defaults();
 
 $|=1;
 
+my ($now,$last,$delta,$to_print,$out);
+
 my $start = Time::HiRes::time();
-if($opt::delta) {
-    $start = Time::HiRes::time();
+if(@opt::delta) {
+    $now = $start = Time::HiRes::time();
 } else {
     $start = 0;
 }
 
-my ($now,$delta,$to_print,$out);
-
 while(<>) {
+    $last = $now;
     $now = Time::HiRes::time();
-    $to_print = $now - $start;
+    if($#opt::delta) {
+	$to_print = $now - $last;
+    } else {
+	$to_print = $now - $start;
+    }
 
     my $tz = strftime("%z", localtime($to_print));
     $tz =~ s/(\d{2})(\d{2})/$1:$2/;
@@ -227,7 +234,9 @@ while(<>) {
 sub set_defaults {
     if(not($opt::rfc || $opt::iso || $opt::isotime || $opt::epoch)) {
 	$opt::epoch = 1;
-	$opt::delta = 1;
+	if(not @opt::delta) {
+	    @opt::delta = (1);
+	}
     }
 }
 
@@ -236,7 +245,7 @@ sub parse_options {
     $Global::progname = 'timestamp';
 
     Getopt::Long::Configure ("bundling","require_order");
-    GetOptions("delta|d" => \$opt::delta,
+    GetOptions("delta|d" => \@opt::delta,
 	       # RFC822
 	       "rfc|r" => \$opt::rfc,
 	       "iso|i" => \$opt::iso,
@@ -247,7 +256,6 @@ sub parse_options {
 	       "help|h" => \$opt::help,
 	       "version|V" => \$opt::version,
 	) || die_usage();
-
     if(defined $opt::help) { die_usage(); }
     if(defined $opt::version) { version(); exit(0); }
     $Global::debug = $opt::debug;
