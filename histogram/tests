@@ -21,9 +21,11 @@ echo "## 1,a 2,b command line"
 histogram 1,a 2,b
 echo "## 1 2 3 4 command line"
 histogram 1 2 3 4
-echo "## a 1 b 2 c 3 command line"
+echo "## a 1 b 2 c 3 command line - not ideal"
 histogram a 1 b 2 c 3
-echo "## "a a":1 b:2 c:3 command line"
+echo '## "a a":1 b:2 c:3 command line'
 histogram "a a":1 b:2 c:3
+echo "## null input"
+histogram </dev/null
 
 (echo 150 hundredfifty;echo 30 thirty;echo 3 three;echo 6 six) | histogram --format vbH

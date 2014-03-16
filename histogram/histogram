@@ -51,6 +51,8 @@ One comma separated header+value per line: (echo a,1; echo b,1.01; echo c,3.1) |
 
 =head1 OPTIONS
 
+=over 9
+
 =item B<--delimiter> I<delim>
 
 =item B<-d> I<delim>
@@ -66,6 +68,8 @@ Take the logarithm of all values.
 
 
 =item B<--input> I<input_format>
+
+=item B<-i> I<input_format>
 
 Give format of input. B<histogram> will try to guess the input format
 based on different heuristics. If it guesses wrong, you can override
@@ -117,9 +121,11 @@ Column 1 is ignored, column 2 is header, column 3 is value, guess separator.
 
 =item B<--format> I<output_format>
 
+=item B<-f> I<output_format>
+
 Give format of output. I<output_format> is a string consisting of:
 
-=over 13
+=over 5
 
 =item Z<>B<b>
 
@@ -366,6 +372,10 @@ if($#ARGV != -1) {
 } else {
     @raw = (<>);
     chomp @raw;
+    if(not @raw) {
+	# Empty input
+	exit;
+    }
 }
 
 
