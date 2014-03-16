@@ -1,0 +1,29 @@
+#!/bin/bash
+
+echo "## pre space, decimal"
+(echo ' 8.999 otte'; echo '16.999 seksten') | histogram
+(echo ' 8.999,otte'; echo '16.999,seksten') | histogram --input v,h
+
+echo "## two decimal, only values"
+seq 1 .09 2 | histogram --input v
+
+echo "## 1 2 3 command line"
+histogram 1 2 3
+
+echo "## a:1 b:2 c:3 command line"
+histogram a:1 b:2 c:3
+echo "## a 1 b 2 c 3"
+(echo  a 1; echo b 2; echo c 3) | histogram
+echo "## a  1 b 2 c 3"
+(echo "a  1"; echo b 2; echo c 3) | histogram
+
+echo "## 1,a 2,b command line"
+histogram 1,a 2,b
+echo "## 1 2 3 4 command line"
+histogram 1 2 3 4
+echo "## a 1 b 2 c 3 command line"
+histogram a 1 b 2 c 3
+echo "## "a a":1 b:2 c:3 command line"
+histogram "a a":1 b:2 c:3
+
+(echo 150 hundredfifty;echo 30 thirty;echo 3 three;echo 6 six) | histogram --format vbH

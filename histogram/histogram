@@ -6,8 +6,9 @@ histogram - make and display a histogram on the command line
 
 =head1 SYNOPSIS
 
-B<histogram> [--delimiter <delim>|-d <delim>] [--pre|--post]
-[--log|-l] [--values-as-headers|-t] [--values-before-headers|-b] <list of numbers>
+B<histogram> [--delimiter <delim>|-d <delim>]
+[--log|-l] [--input <format>|-i <format>]
+[--format <format>|-f <format>] [<list of numbers>]
 
 B<cat> <file with numbers> | B<histogram> [options]
 
@@ -27,15 +28,15 @@ Line with CSV: B<histogram> -d , 1,1.01,3.1
 
 =item *
 
-Line with white space separated values: B<histogram> 1 1.01 3.1
+Line with white space separated values: B<histogram> -i v 1 1.01 3.1
 
 =item *
 
-Line with white space separated headers+values: B<histogram> a 1 b 1.01 c 3.1
+Line with white space separated headers+values: B<histogram> 'a 1' 'b 1.01' 'c 3.1'
 
 =item *
 
-One value per line: (echo 1; echo 1.01; echo 3.1) | B<histogram>
+One value per line: (echo 1; echo 1.01; echo 3.1) | B<histogram> -i v
 
 =item *
 
@@ -49,8 +50,6 @@ One comma separated header+value per line: (echo a,1; echo b,1.01; echo c,3.1) |
 
 
 =head1 OPTIONS
-
-=over 9
 
 =item B<--delimiter> I<delim>
 
@@ -66,89 +65,152 @@ Use I<delim> as delimiter between elements.
 Take the logarithm of all values.
 
 
-=item B<--pre>
+=item B<--input> I<input_format>
 
-Put the header before the bar.
+Give format of input. B<histogram> will try to guess the input format
+based on different heuristics. If it guesses wrong, you can override
+it with B<--input>. I<input_format> is a string consisting of:
 
-See also: B<--post>
+=over 13
 
+=item Z<>B<h>
 
-=item B<--post>
+This column is a header.
 
-Put the header after the bar.
+=item Z<>B<H>
 
-See also: B<--pre>
+The rest of the line is a header.
 
+=item Z<>B<v>
 
-=item B<--values-as-headers>
+This column is a value.
 
-=item B<-t>
+=item Z<>B<i>
 
-Use the numbers as headers.
+This column is ignored.
 
+=item Z<>B<other char>
 
-=item B<--values-before-headers>
+This char is a delimiter
 
-=item B<-b>
+=back
 
-Normally headers are given before the
-value. B<--values-before-headers> looks the header after the value.
+If there are no delimiter is given, it will be guessed.
+
+Examples:
+
+=over 13
+
+=item B<--input h,v>
+
+Column 1 is header, column 2 is value, separated by B<,>.
+
+=item B<--input hv>
+
+Column 1 is header, column 2 is value, guess separator.
+
+=item B<--input ihv>
+
+Column 1 is ignored, column 2 is header, column 3 is value, guess separator.
+
+=back
+
+=item B<--format> I<output_format>
+
+Give format of output. I<output_format> is a string consisting of:
+
+=over 13
+
+=item Z<>B<b>
+
+The bar.
+
+=item Z<>B<c>
+
+Percent of total outside bar.
+
+=item Z<>B<C>
+
+Percent of total inside bar.
+
+=item Z<>B<h>
+
+Header outside bar.
+
+=item Z<>B<H>
+
+Header inside bar.
+
+=item Z<>B<p>
+
+Percent of max outside bar.
+
+=item Z<>B<p>
+
+Percent of max inside bar.
+
+=item Z<>B<v>
+
+Value outside bar.
+
+=item Z<>B<V>
+
+Value inside bar.
+
+=back
+
+A format must contain 'b'. Default is VbHP.
 
 
 =back
 
-(echo 150 hundredfifty;echo 30 thirty;echo 3 three;echo 6 six)|./histogram --format Hbcp 
-(echo 0 zero; echo 50 fifty; echo 150 hundredfifty;echo 130 hundredthirty;echo 3 three;echo 6 six)|./histogram --format HbHCP 
-ls -l|tail -n +2| ./histogram --input iiiiviiih
+=head1 EXAMPLE: file sizes in current dir
 
-=head1 EXAMPLE: git: number of commits in the last year, by author
-
-git shortlog -s --after="1 years" | histogram -b
-
-
-=head1 EXAMPLE: git: number of commits per day
-
-git log --format=%ai | cut -d\  -f1 | uniq -c | histogram -b --post
-
-
-=head1 EXAMPLE: git: commits by hour of the day
-
-git log --format=%ai | perl -pe 's/.* (\d\d):.*/$1/' | sort  -n | uniq -c | histogram -b
-
-
-=head1 EXAMPLE: git: commits by day of the week
-
-git log --format=%ad |cut -d\  -f1 | sort  -n | uniq -c | histogram -b       
+ls -l|tail -n +2| histogram --input iiiiviiih 
 
 
 =head1 EXAMPLE: run time of processes
 
-ps -e | tail -n +2 | perl -pe 's/.*(\d\d):(\d\d):(\d\d) (.*)/($1*3600+$2*60+$3)." $4"/e' | histogram -b -l
+ps -e | tail -n +2 | perl -pe 's/.*(\d\d):(\d\d):(\d\d) (.*)/($1*3600+$2*60+$3)." $4"/e' | sort -n | histogram
 
 
-=head1 EXAMPLE: Letter frequencies in a text file
+=head1 EXAMPLE: git statistics
 
-cat file | perl -ne 'print map {uc($_),"\n"} split//,$_' | sort | uniq -c | histogram -b
+Number of commits and percentage in the last year, by author:
 
+git shortlog -s --after="1 years" | histogram --input vH --format VbHC
 
-=head1 EXAMPLE: Number of HTTP requests per day
+Number of commits per day:
 
-cat apache.log | cut -d\  -f4 | cut -d/ -f 1,2 | uniq -c | histogram -b
+git log --format=%ai | cut -d\  -f1 | uniq -c | histogram 
 
+Number of commits by hour of the day:
 
-=head1 EXAMPLE: Beijing Air Quality Index
+git log --format=%ai | perl -pe 's/.* (\d\d):.*/$1/' | sort  -n | uniq -c | histogram
 
-curl -s https://twitter.com/statuses/user_timeline/15527964.rss | grep /description | perl -nle 'print "$1 $2" if /(\S+ \S+); PM2.5;[^;]+; (\d+)/' | histogram
+Number of commits by day of the week:
+
+git log --format=%ad |cut -d\  -f1 | sort  -n | uniq -c | histogram
 
 
 =head1 EXAMPLE: Visualize ping times
 
-ping -i .2 -c 10 google.com | grep -oP 'time=\K\S*' | histogram -t --post
+ping -ni .2 -c 10 google.com | grep -oP 'time=\K\S*' | histogram
 
 
-=head1 EXAMPLE: Visualize filesize inside a directory
+=head1 EXAMPLE: Visualize disk usage
 
-du -s * | histogram -b
+du -s * | histogram --format VbHC
+
+
+=head1 EXAMPLE: Number of HTTP requests per day
+
+cat access.log | cut -d\  -f4 | cut -d: -f 1 | uniq -c | histogram
+
+
+=head1 EXAMPLE: Letter frequencies in a text file
+
+cat file | perl -ne 'print map {uc($_),"\n"} split//,$_' | sort | uniq -c | histogram
 
 
 =head1 BUGS
@@ -163,7 +225,7 @@ Report bugs to <bug-parallel@gnu.org>.
 
 =head1 AUTHOR
 
-Copyright (C) 2012 Ole Tange, http://ole.tange.dk and Free
+Copyright (C) 2012,2013,2014 Ole Tange, http://ole.tange.dk and Free
 Software Foundation, Inc.
 
 
@@ -286,23 +348,16 @@ B<cut>(1)
 
 =cut
 
-# histogram -d , a1,b2,c3 d4,5,e76
-# histogram 1 2 3
-# histogram a:1 b:2 c:3
-# histogram "a a":1 b:2 c:3
-# histogram "a a" 1 b 2 c 3
-# (echo a a 1; echo b 2; echo c 3) | histogram
-# histogram --post aaaaaaaaaaa1 b10
-# seq 10 | histogram -t --pre
-
 use strict;
 use Getopt::Long;
 
+Getopt::Long::Configure("bundling","require_order");
 GetOptions
     ("delimiter|d=s" => \$opt::delimiter,
      "log" => \$opt::log,
      "input|i=s" => \$opt::input,
      "format|f=s" => \$opt::format,
+     "debug|D" => \$opt::debug,
     ) || die_usage();
 
 my @raw;
@@ -313,21 +368,25 @@ if($#ARGV != -1) {
     chomp @raw;
 }
 
+
 my ($max_value_length, $max_header_length, $max_value_header_length, $header_ref, $value_ref);
 if(not defined $opt::input) {
-    # Guess opt::input
     my $delimiter = guess_delimiter(@raw);
     if($opt::delimiter) {
 	# override guessed delimiter if given
 	$delimiter = $opt::delimiter;
-    } elsif(defined $delimiter) {
+    } else {
+	# Guess opt::input
+	$delimiter = guess_delimiter(@raw);
+    }
+    if(defined $delimiter) {
 	# guess format: (v delimiter h) or (h delimiter v)
 	($max_value_length, $max_header_length, $max_value_header_length, $header_ref, $value_ref) =
-	    parse_raw_given_opt_input('\s*v'.$delimiter."h",@raw);
+	    parse_raw_given_opt_input("v".$delimiter."h",@raw);
     } else {
 	# guess format: v
 	($max_value_length, $max_header_length, $max_value_header_length, $header_ref, $value_ref) =
-	    parse_raw_given_opt_input('\s*v',@raw);
+	    parse_raw_given_opt_input("v",@raw);
 	$header_ref = $value_ref;
 	$max_value_length = $max_header_length;
 	$max_value_header_length = $max_value_length + $max_header_length;
@@ -342,8 +401,8 @@ if(not defined $opt::input) {
     ($max_value_length, $max_header_length, $max_value_header_length, $header_ref, $value_ref) =
 	parse_raw_given_opt_input($opt::input, @raw);
 }
-my $max_value = max(@$value_ref);
-my $total_value = sum(@$value_ref);
+my $max_value = undef_as_zero(max(@$value_ref));
+my $total_value = undef_as_zero(sum(@$value_ref));
 
 sub parse_raw_given_opt_input {
     my ($input,@raw) = @_;
@@ -355,24 +414,27 @@ sub parse_raw_given_opt_input {
     # \S+\,(\S+)\;(\S+)
     $input =~ /v.*v/ and die("Only one v is allow in --input");
     $input =~ /h.*h/ and die("Only one h is allow in --input");
-    if($input =~ /^[ivh]+$/) {
+    if($input =~ /^[Hivh]+$/) {
 	# No delimiters => '\s+' (whitespace)
 	$input = join('\s+', split//, $input);
     }
+    # strip prepending white space in input to avoid splitting on that
+    for(@raw) { s/^\s+//; }
     my %part_map = (
 	"h" => '(\S*)',
+	"H" => '(\S*(?:.*\S)*)',
 	"i" => '\S*',
 	"v" => '(\S*)',
 	);
     my (@regexp_part, $first_meta_var,$header,$value,@header,@value);
     for(split //, $input) {
 	# Header, Value
-	if(/[hv]/) {
+	if(/[Hhv]/) {
 	    # Is this h...v or v...h
 	    $first_meta_var ||= $_;
 	}
 	# Header, Value, Ignore
-	if(/[hiv]/) {
+	if(/[Hhiv]/) {
 	    push @regexp_part, $part_map{$_};
 	    next;
 	}
@@ -380,6 +442,7 @@ sub parse_raw_given_opt_input {
 	push @regexp_part, $_;
     }
     my $regexp = join("",@regexp_part);
+    debug("Input: $input The regexp: $regexp\n");
     for my $rawline (@raw) {
 	$rawline =~ /$regexp/ || die("$regexp not matching $rawline");
 	if(defined $2) {
@@ -405,6 +468,7 @@ sub parse_raw_given_opt_input {
 	# Add the values to the table
 	push(@header,$header);
 	push(@value,$value);
+	debug("Header: $header Value: $value\n");
     }
     
     return ($max_value_length, $max_header_length, $max_value_header_length, \@header, \@value);
@@ -412,7 +476,10 @@ sub parse_raw_given_opt_input {
 
 my $term_width = terminal_width();
 
-my $format = ($opt::format || "Vbhp");
+my $format = ($opt::format || "VbHP");
+if($format !~ /b/) {
+    die_usage();
+}
 my ($front, $end) = split /b/, $format;
 my ($front_inside, $front_outside) = ($front,$front);
 $front_inside =~ s/[a-z]//g; # Remove outsides
@@ -424,7 +491,7 @@ $end_outside =~ s/[A-Z]//g; # Remove insides
 for(my $i = 0; $i <= $#$value_ref; $i++) {
     # $front_outside, ( $front_inside, BAR, $end_inside ), $end_outside,
     my $header = $header_ref->[$i];
-    my $value = $value_ref->[$i];
+    my $value = undef_as_zero($value_ref->[$i]);
     my %end_repl = (
 	'V' => sprintf(" %".$max_value_length."s",$value),
 	'H' => sprintf(" %".$max_header_length."s",$header),
@@ -449,11 +516,7 @@ for(my $i = 0; $i <= $#$value_ref; $i++) {
     my $bar_length = $term_width - length($front_outside_string) - length($end_outside_string);
     my $factor;
     if($opt::log) {
-      if($value <= 0 or $max_value <= 0) {
-	$factor = 0;
-      } else {
 	$factor =  log($value)/log($max_value);
-      }
     } else {
 	$factor =  $value/$max_value;
     }
@@ -466,12 +529,15 @@ sub max {
     # Returns:
     #   Maximum value of array
     my $max;
+    no warnings 'numeric';
     for (@_) {
         # Skip undefs
         defined $_ or next;
-        $_ eq "" and next;
-	defined $max or do { $max = $_; next; }; # Set $_ to the first non-undef
-        $max = ($max > $_) ? $max : $_;
+        # Skip empty
+	$_ eq "" and next;
+	# Set $_ to the first non-undef (convert "10a" => 0+10)
+        defined $max or do { $max = 0+$_; next; };
+        $max = ($max > $_) ? 0+$max : $_;
     }
     return $max;
 }
@@ -482,6 +548,7 @@ sub sum {
     #   Sum of values of array
     my @args = @_;
     my $sum = 0;
+    no warnings 'numeric';
     for (@args) {
         # Skip undefs
         $_ and do { $sum += $_; }
@@ -549,26 +616,68 @@ sub bar_string {
 
 sub guess_delimiter {
     my @raw = @_;
-    my (%charcount,$guess);
+    my %charcount;
 
     for(split//,join("",@raw)) {
 	# [a-zA-Z0-9] should never be auto chosen for delimiter
 	/[a-zA-Z0-9]/ and next;
 	$charcount{$_}++
     }
-    # The guess must be present in all lines
-    for my $g (sort { $charcount{$b} <=> $charcount{$a} } keys %charcount) {
-      defined $g or next;
-      if(grep { not /\Q$g\E/ } @raw) {
-	next;
-      } else {
-	$guess = $g;
-	last;
-      }
-    }
+    my $guess = (sort { $charcount{$b} <=> $charcount{$a} } keys %charcount)[0];
     if(defined $guess and $guess =~ /\s/) {
 	# If the guess is a white space, then use 1+ whitespaces
 	$guess = '\s+';
     }
+    debug("Guessed delimiter: ".undef_as_empty($guess)."\n");
     return $guess;
+}
+
+sub undef_as_zero {
+    my $a = shift;
+    return $a ? $a : 0;
+}
+
+sub undef_as_empty {
+    my $a = shift;
+    return $a ? $a : "";
+}
+
+sub debug {
+    # Returns: N/A
+    $opt::debug or return;
+    @_ = grep { defined $_ ? $_ : "" } @_;
+    print @_;
+}
+
+sub warning {
+    my @w = @_;
+    my $fh = $Global::original_stderr || *STDERR;
+    my $prog = $Global::progname || "parallel";
+    print $fh $prog, ": Warning: ", @w;
+}
+
+
+sub error {
+    my @w = @_;
+    my $fh = $Global::original_stderr || *STDERR;
+    my $prog = $Global::progname || "parallel";
+    print $fh $prog, ": Error: ", @w;
+}
+
+sub die_usage {
+    # Returns: N/A
+    usage();
+    exit(1);
+}
+
+sub usage {
+    # Returns: N/A
+    print join
+	("\n",
+	 "Usage:",
+	 "histogram [--delimiter <delim>|-d <delim>] [--log|-l]",
+	 "          [--input <format>|-i <format>] [--format <format>|-f <format>]",
+	 "          [<list of numbers>]",
+	 "cat <file with numbers> | histogram [options]",
+	 "");
 }
