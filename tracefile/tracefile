@@ -12,12 +12,20 @@ if(not ($opt::exists or $opt::nonexists or $opt::all)) {
 }
 
 my @cmd = shell_quote(@ARGV);
+my $dir = ".";
 
 open(IN, "-|", "strace -ff -e trace=file @cmd 2>&1") || die;
 while(<IN>) {
+    if(/chdir."(([^\\"]|\\[\\"nt])*)".\s*=\s*0/) {
+	$dir = $1;
+    }
+
+    # [pid 30817] stat("transpose/100000files.tar.gz", {st_mode=S_IFREG|0644, st_size=140853248, ...}) = 0
     if(s/^[^\"]+"(([^\\"]|\\[\\"nt])*)".*/$1/) {
 	# Matches the strace structure for a file
 	my $file = shell_unquote($1);
+	# Relative to $dir
+	$file =~ s:^([^/]):$dir/$1:;
 	my $print = 0;
 	if($opt::all
 	   or
@@ -29,7 +37,7 @@ while(<IN>) {
 	if($opt::unique and $seen{$file}++) {
 	    $print = 0;
 	}
-	$print and print;
+	$print and print $file,"\n";
     }
 }
 
