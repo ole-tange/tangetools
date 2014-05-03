@@ -13,31 +13,12 @@ usage () {
 }
 
 print_not_reachable () {
-  if [ "$NOT_REACHABLE" = "1" ] ; then
-    echo -n .
-  else
-    echo -n $HOST:$PORT is not reachable
-    NOT_REACHABLE=1
-  fi
+  echo -n .
 }
 
-print_up_but_port_closed () {
-  if [ "$PORT_CLOSED" = "1" ] ; then
-    echo -n .
-  else
-    echo -n $HOST is up but port $PORT is closed
-    PORT_CLOSED=1
-  fi
-}
-
-port_is_open () {
-    # If tcptraceroute stops working use:
-    # echo | nc -w 2 $HOST $PORT || failed
-    if $NC -z -w 2 $HOST $PORT 2>&1 ; then
-	OPEN=no
-    else
-	OPEN=yes
-    fi
+is_port_open () {
+    $NC -z -w 2 $HOST $PORT 2>&1
+    return $?
 }
 
 if [ -z "$HOST" ] ; then
@@ -51,8 +32,7 @@ if [ -z "$NC" ] ; then
   exit 2
 fi
 
-port_is_open
-while [ "$OPEN" = "no" ] ; do
-  port_is_open
+while ! is_port_open ; do
+  print_not_reachable
 done
 echo
