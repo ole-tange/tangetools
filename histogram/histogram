@@ -381,12 +381,12 @@ if($#ARGV != -1) {
 
 my ($max_value_length, $max_header_length, $max_value_header_length, $header_ref, $value_ref);
 if(not defined $opt::input) {
-    my $delimiter = guess_delimiter(@raw);
+    my $delimiter;
     if($opt::delimiter) {
 	# override guessed delimiter if given
 	$delimiter = $opt::delimiter;
     } else {
-	# Guess opt::input
+	# Guess opt::delimiter
 	$delimiter = guess_delimiter(@raw);
     }
     if(defined $delimiter) {
@@ -413,6 +413,8 @@ if(not defined $opt::input) {
 }
 my $max_value = undef_as_zero(max(@$value_ref));
 my $total_value = undef_as_zero(sum(@$value_ref));
+$max_value ||= 1;
+$total_value ||= 1;
 
 sub parse_raw_given_opt_input {
     my ($input,@raw) = @_;
@@ -633,7 +635,19 @@ sub guess_delimiter {
 	/[a-zA-Z0-9]/ and next;
 	$charcount{$_}++
     }
-    my $guess = (sort { $charcount{$b} <=> $charcount{$a} } keys %charcount)[0];
+    my $guess;
+    for my $g (
+	# Force trying these first:
+	"\0", "\t", ";", ",", " ",
+	sort { $charcount{$b} <=> $charcount{$a} } keys %charcount) {
+	# The delimiter must be found in every single line
+	if(grep !/\Q$g\E/, @raw) {
+	    next;
+	}
+	$guess = $g;
+	last;
+    }
+
     if(defined $guess and $guess =~ /\s/) {
 	# If the guess is a white space, then use 1+ whitespaces
 	$guess = '\s+';
