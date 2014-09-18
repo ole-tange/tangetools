@@ -5,32 +5,30 @@
 # * are hard to guess
 # * will be displayed unambigously in any (normal) font
 # * will survive being passed through a bad fax machine
+# * will survive being passed through handwriting
 # * has UPPER lower number and sign
 #
-# Too close: B8 cC g9 kK lI l1 oO O0 pP sS uU vV xX zZ Z2 ,. :; `' S5
+# Too close: B8 cC g9 6G kK lI l1 oO O0 pP sS uU vV xX zZ Z2 ,. :; `' S5
 # Causes problems in URLs: @/:
 # Causes problems in shell: ! " # $ & ( ) [ ] { } ? | < > \ * =
 # SQL uses: % for wildcard
 # Hard to type: ^ ~ ¨ ¤ § ½ æ ø å Æ Ø Å
 # Never 2 same chars next to eachother. (--) is bad
+# Do not start with '-' or '+' as that looks like an (long) option
 #
 # US-kbd: ~!@#$%^&*()_+ [] {} ;'\ :"| < > ,./ <>? 
 # DK-kbd: §!"#¤%&/()=?` å" Å^ æø' ÆØ* < > ,.- ;:_
 # Common:  ! # %                      < > ,.
 
 my $pw;
-my @chars=split //, 'abdefhijmnqrtyADEFGHJLMNQRTY3467+-';
+my @chars=split //, 'abdefhijmnqrtyADEFHJLMNQRTY347+-';
 do { 
     $pw = "";
     for (1..12) {
-	do {
-	    # avoid double chars (such as --)
-	    $this = $chars[rand $#chars+1]
-	} while($last eq $this);
-	$last = $this;
-	$pw .= $this;
+	$pw .= $chars[rand $#chars+1]
     }
-} while (not($pw =~ /[A-Z]/ and
+} while (($pw =~ /^[+-]/ or $pw =~ /(.)\1/) or
+	 not($pw =~ /[A-Z]/ and
 	     $pw =~ /[a-z]/ and
 	     $pw =~ /[0-9]/ and
 	     $pw =~ /[^a-zA-Z0-9]/));
