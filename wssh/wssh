@@ -1,0 +1,61 @@
+#!/usr/bin/perl
+
+use Getopt::Long;
+
+my @argv = @ARGV;
+get_options_from_array(\@ARGV,[]);
+my $host = shift @ARGV;
+@ARGV=("ssh",@argv);
+$host =~ s/.*\@//;
+print $host;
+system("w4it-for-port-open $host 22");
+exec @ARGV;
+
+sub options_hash {
+    # Returns a hash of the GetOptions config
+    return
+	("1|2|4|6|A|a|C|f|g|K|k|M|N|n|q|s|T|t|V|v|X|x|Y|y" => \$opt::one,
+	 "b|c|D|E|e|F|I|i|L|l|m|O|o|p|Q|R|S|W|w=s" => \$opt::arg,
+	);
+}
+
+sub get_options_from_array {
+    # Run GetOptions on @array
+    # Returns:
+    #   true if parsing worked
+    #   false if parsing failed
+    #   @array is changed
+    my ($array_ref, @keep_only) = @_;
+    if(not @$array_ref) {
+	# Empty array: No need to look more at that
+	return 1;
+    }
+    # A bit of shuffling of @ARGV needed as GetOptionsFromArray is not
+    # supported everywhere
+    my @save_argv;
+    my $this_is_ARGV = (\@::ARGV == $array_ref);
+    if(not $this_is_ARGV) {
+	@save_argv = @::ARGV;
+	@::ARGV = @{$array_ref};
+    }
+    # If @keep_only set: Ignore all values except @keep_only
+    my %options = options_hash();
+    if(@keep_only) {
+	my (%keep,@dummy);
+	@keep{@keep_only} = @keep_only;
+	for my $k (grep { not $keep{$_} } keys %options) {
+	    # Store the value of the option in @dummy
+	    $options{$k} = \@dummy;
+	}
+    }
+    my $retval = GetOptions(%options);
+    if(not $this_is_ARGV) {
+	@{$array_ref} = @::ARGV;
+	@::ARGV = @save_argv;
+    }
+    return $retval;
+}
+
+
+
+
