@@ -216,14 +216,17 @@ while(<>) {
 
     if($opt::rfc) {
 	# RFC822 (actually RFC2822, as the year has 4 digits)
-	print strftime("%a, %d %b %Y %H:%M:%S.".$ms." %z", localtime($to_print)), " ", $_
+	print strftime("%a, %d %b %Y %H:%M:%S.".$ms." %z", localtime($now)), " ", $_
     } elsif($opt::iso) {
 	# ISO8601
-	print strftime("%Y-%m-%dT%H:%M:%S".$ms, localtime($to_print)), $tz , " ", $_;
+	print strftime("%Y-%m-%dT%H:%M:%S.".$ms, localtime($now)), $tz , " ", $_;
     } elsif($opt::isotime) {
 	# ISO8601 time part only
-	print strftime("%H:%M:%S.".$ms, localtime($to_print)), $tz, " ", $_;
+	print strftime("%H:%M:%S.".$ms, localtime($now)), $tz, " ", $_;
     } elsif($opt::epoch) {
+	# Seconds since epoch
+	print strftime("%s.".$ms, localtime($now)), " ", $_;
+    } elsif(@opt::delta) {
 	# Seconds since epoch
 	print strftime("%s.".$ms, localtime($to_print)), " ", $_;
     } else {
@@ -232,8 +235,7 @@ while(<>) {
 }
 
 sub set_defaults {
-    if(not($opt::rfc || $opt::iso || $opt::isotime || $opt::epoch)) {
-	$opt::epoch = 1;
+    if(not($opt::epoch || $opt::rfc || $opt::iso || $opt::isotime || $opt::epoch)) {
 	if(not @opt::delta) {
 	    @opt::delta = (1);
 	}

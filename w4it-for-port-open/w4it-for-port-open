@@ -33,6 +33,7 @@ if [ -z "$NC" ] ; then
 fi
 
 while ! is_port_open ; do
+  sleep 1
   print_not_reachable
 done
 echo

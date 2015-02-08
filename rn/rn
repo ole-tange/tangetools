@@ -1,4 +1,19 @@
 #!/bin/bash
 
 mkdir ~/.rm 2>/dev/null
-mv "$@" ~/.rm
+if mv "$@" ~/.rm ; then
+  # OK
+  true
+else
+  mkdir -p ~/.rm/{1..10}
+  mv "$@" ~/.rm/1 2>/dev/null ||
+  mv "$@" ~/.rm/2 2>/dev/null ||
+  mv "$@" ~/.rm/3 2>/dev/null ||
+  mv "$@" ~/.rm/4 2>/dev/null ||
+  mv "$@" ~/.rm/5 2>/dev/null ||
+  mv "$@" ~/.rm/6 2>/dev/null ||
+  mv "$@" ~/.rm/7 2>/dev/null ||
+  mv "$@" ~/.rm/8 2>/dev/null ||
+  mv "$@" ~/.rm/9 2>/dev/null ||
+  mv "$@" ~/.rm/10
+fi

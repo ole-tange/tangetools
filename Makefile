@@ -15,8 +15,11 @@ tracefile/tracefile.1: tracefile/tracefile.pod
 timestamp/timestamp.1: timestamp/timestamp
 	pod2man timestamp/timestamp > timestamp/timestamp.1
 
+wssh/wssh.1: wssh/wssh
+	#pod2man wssh/wssh > wssh/wssh.1
+
 install:
 	mkdir -p /usr/local/bin
-	parallel ln -sf `pwd`/{}/{} /usr/local/bin/{} ::: blink reniced em field forever neno rn stdout tracefile w4it-for-port-open upsidedown histogram goodpasswd mtrr not summer timestamp transpose
+	parallel ln -sf `pwd`/{}/{} /usr/local/bin/{} ::: blink reniced em field forever neno rn stdout tracefile w4it-for-port-open upsidedown histogram goodpasswd mtrr not summer timestamp transpose wssh
 	mkdir -p /usr/local/share/man/man1
 	parallel ln -sf `pwd`/{} /usr/local/share/man/man1/{/} ::: */*.1
