@@ -8,6 +8,8 @@ tracefile - list files being accessed
 
 B<tracefile> [-aenu] I<command>
 
+B<tracefile> [-aenu] -p I<pid>
+
 =head1 DESCRIPTION
 
 B<tracefile> will print the files being accessed by the command.
@@ -34,6 +36,10 @@ List only existing files.
 =item B<-n>
 
 List only non-existing files.
+
+=item B<-p> I<pid>
+
+Trace process id.
 
 
 =item B<-u>
