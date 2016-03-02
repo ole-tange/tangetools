@@ -13,9 +13,9 @@ if(not ($opt::exists or $opt::nonexists or $opt::all)) {
 
 my @cmd = shell_quote(@ARGV);
 my $dir = ".";
-my $pid = $opt::pid ? "-p $pid" : "";
+my $pid = $opt::pid ? "-p $opt::pid" : "";
 
-open(IN, "-|", "strace -ff -e trace=file @cmd 2>&1") || die;
+open(IN, "-|", "strace -ff $pid -e trace=file @cmd") || die;
 while(<IN>) {
     if(/chdir."(([^\\"]|\\[\\"nt])*)".\s*=\s*0/) {
 	$dir = $1;
@@ -50,7 +50,7 @@ sub options_hash {
          "exists|exist|e" => \$opt::exists,
          "nonexists|nonexist|non-exists|non-exist|n" => \$opt::nonexists,
          "all|a" => \$opt::all,
-	 "pid|p=i" => $opt::pid,
+	 "pid|p=i" => \$opt::pid,
 	);
 }
 
