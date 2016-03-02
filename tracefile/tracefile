@@ -15,7 +15,7 @@ my @cmd = shell_quote(@ARGV);
 my $dir = ".";
 my $pid = $opt::pid ? "-p $opt::pid" : "";
 
-open(IN, "-|", "strace -ff $pid -e trace=file @cmd") || die;
+open(IN, "-|", "strace -ff $pid -e trace=file @cmd 2>&1") || die;
 while(<IN>) {
     if(/chdir."(([^\\"]|\\[\\"nt])*)".\s*=\s*0/) {
 	$dir = $1;
