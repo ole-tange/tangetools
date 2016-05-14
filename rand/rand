@@ -1,0 +1,73 @@
+#!/bin/bash
+
+: <<=cut
+=pod
+
+=head1 NAME
+
+rand - Generate (pseudo-)random data
+
+
+=head1 SYNOPSIS
+
+rand
+
+
+=head1 DESCRIPTION
+
+B<rand> uses B<openssl> to generate pseudorandom data. Just like B<cat
+/dev/urandom> it generates an infinite amount of data, but it is much
+faster (400 MB/s on hardware from 2013).
+
+The quality is lower as there are only 2^256 different tables (this is
+still around the number of atoms in the visible universe).
+
+
+=head1 EXAMPLE
+
+Overwrite a harddisk with random data:
+
+  rand >/dev/sda
+
+
+=head1 AUTHOR
+
+Copyright (C) 2016 Ole Tange,
+http://ole.tange.dk and Free Software Foundation, Inc.
+
+
+=head1 LICENSE
+
+Copyright (C) 2012 Free Software Foundation, Inc.
+
+This program is free software; you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation; either version 3 of the License, or
+at your option any later version.
+
+This program is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with this program.  If not, see <http://www.gnu.org/licenses/>.
+
+
+=head1 DEPENDENCIES
+
+B<rand> uses B<openssl>.
+
+
+=head1 SEE ALSO
+
+B<openssl>
+
+
+=cut
+
+# Generate random 8-bit data by AES encrypting /dev/zero with a random
+# key
+key=$(openssl rand -hex 16)
+iv=$(openssl rand -hex 16)
+< /dev/zero openssl enc -aes-128-ctr -K $key -iv $iv 2>/dev/null

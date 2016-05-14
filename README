@@ -10,6 +10,8 @@ forever - Run the same command or list of commands every second.
 
 neno - No error no output. Only print STDERR and STDOUT if the command fails.
 
+rand - Generate (pseudo-)random data
+
 reniced - Renice all commands running more than 1 CPU minute unless they are niced or whitelisted.
 
 rn - Move file(s)/dir(s) to ~/.rm/ (wastebasket).
